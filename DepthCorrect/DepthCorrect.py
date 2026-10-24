@@ -363,6 +363,21 @@ class DepthCorrectFusion:
             for input_id in cls.TRANSLATE_INPUTS
         )
 
+    @classmethod
+    def get_scale_values(cls, tool, comp=None):
+        """Read the pre-expression scale, matching AE's ``value`` variable."""
+        values = []
+        for input_id in cls.ALL_SCALE_INPUTS:
+            try:
+                value = float(cls.get_input_value(tool, input_id, comp) or 1.0)
+                values.append(value if math.isfinite(value) else 1.0)
+            except Exception:
+                # A malformed expression from an older run can make the input
+                # unreadable. Falling back to Fusion's normal scale prevents
+                # the repair pass from propagating another invalid Parameter.
+                values.append(1.0)
+        return tuple(values)
+
     @staticmethod
     def find_camera(comp):
         if not comp:
@@ -470,21 +485,12 @@ class DepthCorrectFusion:
                     f"underscores for expressions: '{camera_name}', '{node_name}'"
                 )
 
-            # Keep this as a Fusion *simple expression*. The previous version
-            # used self:GetValue() and tool handles inside the expression. That
-            # can be accepted by SetExpression() but fails during evaluation in
-            # Resolve 21.x, producing "cannot get Parameter for X Scale".
-            #
-            # Fully qualify both tools. This is the exact form Fusion writes
-            # in the Inspector and in saved .comp files. The target must not be
-            # left as an unqualified Transform3DOp reference: on Resolve 21.x
-            # that can leave the X Scale Parameter invalid at render time.
-            #
-            # Important: simple expressions use Fusion's global ``sqrt``
-            # function. ``math.sqrt`` belongs to the Python/Lua scripting
-            # context and leaves the Scale parameter invalid at render time.
-            lua_expr = (
-                f'sqrt('
+            # Read pre-expression scale values to preserve them like the AE version.
+            # This matches AE\\'s ``value`` variable and ensures existing scale is maintained.
+            # Create three separate expressions - one for each scale axis
+            # Each multiplies its corresponding base scale by the distance factor
+            lua_expr_x = (
+                f'{base_scale_x} * sqrt('
                 f'({camera_name}.{cls.TRANSLATE_INPUTS[0]} - '
                 f'{node_name}.{cls.TRANSLATE_INPUTS[0]})^2 + '
                 f'({camera_name}.{cls.TRANSLATE_INPUTS[1]} - '
@@ -493,20 +499,32 @@ class DepthCorrectFusion:
                 f'{node_name}.{cls.TRANSLATE_INPUTS[2]})^2)'
                 f' / {max(0.001, float(ref_dist))}'
             )
-
-            try:
-                # Clear any stale expression on the hidden Y/Z inputs first,
-                # then drive only the valid X Scale input. With Scale Lock
-                # enabled Fusion propagates X to the other axes.
-                for scale_input_id in cls.ALL_SCALE_INPUTS[1:]:
-                    try:
-                        cls.set_input_expression(tool, scale_input_id, None)
-                    except Exception:
-                        pass
-                cls.set_input_expression(tool, cls.SCALE_INPUTS[0], lua_expr)
-                applied += 1
-            except Exception as e:
-                print(f"Error applying to {tool.Name}: {e}")
+            lua_expr_y = (
+                f'{base_scale_y} * sqrt('
+                f'({camera_name}.{cls.TRANSLATE_INPUTS[0]} - '
+                f'{node_name}.{cls.TRANSLATE_INPUTS[0]})^2 + '
+                f'({camera_name}.{cls.TRANSLATE_INPUTS[1]} - '
+                f'{node_name}.{cls.TRANSLATE_INPUTS[1]})^2 + '
+                f'({camera_name}.{cls.TRANSLATE_INPUTS[2]} - '
+                f'{node_name}.{cls.TRANSLATE_INPUTS[2]})^2)'
+                f' / {max(0.001, float(ref_dist))}'
+            )
+            lua_expr_z = (
+                f'{base_scale_z} * sqrt('
+                f'({camera_name}.{cls.TRANSLATE_INPUTS[0]} - '
+                f'{node_name}.{cls.TRANSLATE_INPUTS[0]})^2 + '
+                f'({camera_name}.{cls.TRANSLATE_INPUTS[1]} - '
+                f'{node_name}.{cls.TRANSLATE_INPUTS[1]})^2 + '
+                f'({camera_name}.{cls.TRANSLATE_INPUTS[2]} - '
+                f'{node_name}.{cls.TRANSLATE_INPUTS[2]})^2)'
+                f' / {max(0.001, float(ref_dist))}'
+            )
+            
+            # Apply each expression to its corresponding scale axis
+            cls.set_input_expression(tool, cls.ALL_SCALE_INPUTS[0], lua_expr_x)
+            cls.set_input_expression(tool, cls.ALL_SCALE_INPUTS[1], lua_expr_y)
+            cls.set_input_expression(tool, cls.ALL_SCALE_INPUTS[2], lua_expr_z)
+            applied += 1
 
         comp.EndUndo(True)
         return True, f"Applied to {applied} node(s)"
