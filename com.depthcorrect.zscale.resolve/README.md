@@ -13,7 +13,7 @@ DepthCorrect for Resolve is a Workflow Integration plugin that applies a **live*
 ## Requirements
 
 - DaVinci Resolve 18.5 or later with Workflow Integration Plugins enabled.
-- The matching `WorkflowIntegration.node` binary from the local Resolve installation. This project does not redistribute that proprietary, platform-specific SDK binary.
+- The Resolve Developer SamplePlugin, which contains the matching `WorkflowIntegration.node` bridge. The installer copies this local proprietary binary; this project does not redistribute it.
 
 ## Install
 
@@ -21,14 +21,15 @@ DepthCorrect for Resolve is a Workflow Integration plugin that applies a **live*
 2. Copy the extracted `com.depthcorrect.zscale.resolve` folder into Resolve's Workflow Integration Plugins directory:
    - **Windows:** `C:\ProgramData\Blackmagic Design\DaVinci Resolve\Support\Workflow Integration Plugins\`
    - **macOS:** `~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Workflow Integration Plugins/`
-3. Copy the `WorkflowIntegration.node` file from your Resolve installation's Workflow Integration SDK into the plugin folder:
+3. Alternatively, run `install_resolve.lua` from Resolve's Fusion page. It copies the plugin into the correct platform-specific directory and automatically copies `WorkflowIntegration.node` from Resolve's local SamplePlugin SDK:
+   - **Windows source:** `C:\ProgramData\Blackmagic Design\DaVinci Resolve\Support\Developer\Workflow Integrations\Examples\SamplePlugin\WorkflowIntegration.node`
+   - **macOS source:** `/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Workflow Integrations/Examples/SamplePlugin/WorkflowIntegration.node`
+4. For manual installation, copy that same `WorkflowIntegration.node` into:
    - **Windows:** `com.depthcorrect.zscale.resolve\native\windows-x64\WorkflowIntegration.node`
-   - **macOS (Apple Silicon or universal):** `com.depthcorrect.zscale.resolve/native/macos-universal/WorkflowIntegration.node`
-   Create the `native` and platform subfolders if they are not present in the extracted archive.
-4. Alternatively, run `install_resolve.lua` from Resolve's Fusion page. It copies the plugin into the correct platform-specific directory above. The installer does not download or provide the proprietary `WorkflowIntegration.node` binary.
+   - **macOS:** `com.depthcorrect.zscale.resolve/native/macos-universal/WorkflowIntegration.node`
 5. Restart Resolve, open a Fusion composition with `Transform3D` and `Camera3D` nodes, then choose **Workspace > Workflow Integrations > DepthCorrect**.
 
-The bridge is version- and platform-specific. Do not download an unrelated copy from another plugin or commit it to this repository.
+The bridge is version- and platform-specific. The installer uses the copy shipped with the installed Resolve version. Do not commit `WorkflowIntegration.node` to this repository or use an unrelated copy from another plugin.
 
 ## Use
 
@@ -47,7 +48,7 @@ Fusion expression references require valid identifiers (letters, numbers, and un
 ## Troubleshooting
 
 - **Plugin is not listed:** confirm the extracted folder is directly inside the Workflow Integration Plugins directory and restart Resolve.
-- **Cannot connect to Resolve / missing native bridge:** verify that the correct platform `WorkflowIntegration.node` file is in the path above.
+- **Cannot connect to Resolve / missing native bridge:** verify that the Resolve Developer SamplePlugin exists and contains `WorkflowIntegration.node`, then rerun `install_resolve.lua`. The expected source path is shown in the installation steps.
 - **Fusion is not active:** switch to the Fusion page and open a composition before scanning.
 - **No Transform3D nodes appear:** select Transform3D nodes in the node graph before scanning.
 - **No Camera3D found:** add a Camera3D tool to the composition.
