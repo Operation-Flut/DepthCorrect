@@ -19,13 +19,14 @@ DepthCorrect for Resolve is a Workflow Integration plugin that applies a **live*
 
 1. Download and extract `com.depthcorrect.zscale.resolve.zip` from [GitHub Releases](https://github.com/OseMine/DepthCorrect/releases).
 2. Copy the extracted `com.depthcorrect.zscale.resolve` folder into Resolve's Workflow Integration Plugins directory:
-   - **Windows:** `%PROGRAMDATA%\Blackmagic Design\DaVinci Resolve\Support\Workflow Integration Plugins\`
-   - **macOS:** `/Library/Application Support/Blackmagic Design/DaVinci Resolve/Workflow Integration Plugins/`
+   - **Windows:** `C:\ProgramData\Blackmagic Design\DaVinci Resolve\Support\Workflow Integration Plugins\`
+   - **macOS:** `~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Workflow Integration Plugins/`
 3. Copy the `WorkflowIntegration.node` file from your Resolve installation's Workflow Integration SDK into the plugin folder:
    - **Windows:** `com.depthcorrect.zscale.resolve\native\windows-x64\WorkflowIntegration.node`
    - **macOS (Apple Silicon or universal):** `com.depthcorrect.zscale.resolve/native/macos-universal/WorkflowIntegration.node`
    Create the `native` and platform subfolders if they are not present in the extracted archive.
-4. Restart Resolve, open a Fusion composition with `Transform3D` and `Camera3D` nodes, then choose **Workspace > Workflow Integrations > DepthCorrect**.
+4. Alternatively, run `install_resolve.lua` from Resolve's Fusion page. It copies the plugin into the correct platform-specific directory above. The installer does not download or provide the proprietary `WorkflowIntegration.node` binary.
+5. Restart Resolve, open a Fusion composition with `Transform3D` and `Camera3D` nodes, then choose **Workspace > Workflow Integrations > DepthCorrect**.
 
 The bridge is version- and platform-specific. Do not download an unrelated copy from another plugin or commit it to this repository.
 

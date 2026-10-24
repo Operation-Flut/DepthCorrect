@@ -1,107 +1,90 @@
 -- install_resolve.lua
--- DaVinci Resolve plugin installer for DepthCorrect.
+-- DaVinci Resolve Workflow Integration Plugin installer for DepthCorrect.
 --
--- Run this script from the Resolve Fusion page (Script > Run Script...).
--- It copies the plugin files into the Resolve extensions directory and
--- prints instructions for launching the plugin.
+-- Run this script from Resolve's Fusion page with Script > Run Script....
+-- The script installs the folder containing this file into Resolve's platform
+-- specific Workflow Integration Plugins directory.
+--
+-- Target directories:
+--   Windows: C:\ProgramData\Blackmagic Design\DaVinci Resolve\Support\Workflow Integration Plugins\
+--   macOS:   ~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Workflow Integration Plugins/
 --
 -- Requirements:
---   - DaVinci Resolve 18.6 or later
---   - The plugin must be built first (npm run package)
---
--- Usage:
---   1. Open DaVinci Resolve
---   2. Switch to the Fusion page
---   3. Script > Run Script... > select install_resolve.lua
---   4. Follow the on-screen instructions
+--   - DaVinci Resolve 18.5 or later
+--   - The matching WorkflowIntegration.node supplied by the local Resolve SDK
 
-local app = Resolve.appPath()
-if not app then
-    print("[DepthCorrect] ERROR: Could not determine Resolve application path.")
+local function fail(message)
+    print("[DepthCorrect] ERROR: " .. message)
     return false
 end
 
--- Determine the Resolve extensions directory.
--- macOS:   ~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Extensions/
--- Windows:  %APPDATA%\Blackmagic Design\DaVinci Resolve\Support\Extensions\
--- Linux:    ~/.local/share/Blackmagic Design/DaVinci Resolve/Extensions/
+local function shellQuote(value, windows)
+    if windows then
+        return '"' .. tostring(value):gsub('"', '""') .. '"'
+    end
+    return "'" .. tostring(value):gsub("'", "'\\''") .. "'"
+end
 
-local extDir
-if Resolve.appPlatform() == "mac" then
-    extDir = os.getenv("HOME") ..
-        "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Extensions/"
-elseif Resolve.appPlatform() == "win" then
-    extDir = os.getenv("APPDATA") ..
-        "\\Blackmagic Design\\DaVinci Resolve\\Extensions\\"
+local platform = string.lower(tostring(Resolve.appPlatform and Resolve.appPlatform() or ""))
+local isWindows = platform == "win" or platform == "windows" or platform:find("windows", 1, true) ~= nil
+local isMac = platform == "mac" or platform == "macos" or platform:find("mac", 1, true) ~= nil
+
+local baseDir
+if isWindows then
+    -- PROGRAMDATA is normally C:\ProgramData. Keep the documented path
+    -- explicit so the installer does not accidentally use the per-user APPDATA
+    -- directory.
+    baseDir = (os.getenv("PROGRAMDATA") or "C:\\ProgramData") ..
+        "\\Blackmagic Design\\DaVinci Resolve\\Support\\Workflow Integration Plugins"
+elseif isMac then
+    baseDir = (os.getenv("HOME") or "~") ..
+        "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Workflow Integration Plugins"
 else
-    extDir = os.getenv("HOME") ..
-        "/.local/share/Blackmagic Design/DaVinci Resolve/Extensions/"
+    return fail("Unsupported Resolve platform: " .. platform .. ". This installer supports Windows and macOS.")
 end
 
 local pluginId = "com.depthcorrect.zscale.resolve"
-local pluginDir = extDir .. pluginId
+local pluginDir = baseDir .. (isWindows and "\\" or "/") .. pluginId
+
+-- Resolve does not expose a universal script-directory API. Lua's debug
+-- source value gives us the absolute path when the script is run from a file.
+local source = debug.getinfo(1, "S").source or ""
+if source:sub(1, 1) == "@" then
+    source = source:sub(2)
+else
+    return fail("Run install_resolve.lua as a file, not from the Lua console.")
+end
+
+local separator = isWindows and "\\" or "/"
+local sourceDir = source:match("^(.+)[/\\][^/\\]+$")
+if not sourceDir or sourceDir == "" then
+    return fail("Could not determine the installer directory.")
+end
 
 print("[DepthCorrect] Plugin ID: " .. pluginId)
-print("[DepthCorrect] Target directory: " .. pluginDir)
+print("[DepthCorrect] Source: " .. sourceDir)
+print("[DepthCorrect] Target: " .. pluginDir)
 
--- Check if the plugin source exists.
-local sourceDir = fusion:GetProjectPath() or ""
-if sourceDir == "" then
-    print("[DepthCorrect] ERROR: Could not determine project path. Please run this script from a Fusion composition.")
-    return false
+local sourceArg = shellQuote(sourceDir, isWindows)
+local targetArg = shellQuote(pluginDir, isWindows)
+local command
+
+if isWindows then
+    -- xcopy copies the complete plugin tree, including native platform
+    -- directories and any locally supplied WorkflowIntegration.node file.
+    local sourceWildcard = shellQuote(sourceDir .. separator .. "*", true)
+    command = "if not exist " .. targetArg .. " mkdir " .. targetArg ..
+        " && xcopy /E /I /Y /Q " .. sourceWildcard .. " " .. targetArg
+else
+    command = "mkdir -p " .. targetArg .. " && cp -R " .. sourceArg .. "/. " .. targetArg .. "/"
 end
 
--- Create the target directory if it doesn't exist.
-local ok, err = os.execute("mkdir -p \"" .. pluginDir .. "\"")
-if not ok then
-    print("[DepthCorrect] ERROR: Could not create plugin directory: " .. pluginDir)
-    return false
+local result = os.execute(command)
+local exitCode = type(result) == "number" and result or 0
+if result == false or exitCode ~= 0 then
+    return fail("Could not copy the plugin into the Workflow Integration Plugins directory.")
 end
 
--- Copy plugin files.
-local files = {
-    "main.js",
-    "preload.js",
-    "manifest.xml",
-    "package.json",
-    "index.html",
-    "README.md",
-}
-
--- Copy directories.
-local dirs = {
-    "css",
-    "js",
-    "native",
-}
-
-for _, dir in ipairs(dirs) do
-    local src = sourceDir .. "/" .. dir
-    local dst = pluginDir .. "/" .. dir
-    os.execute("mkdir -p \"" .. dst .. "\"")
-    -- Copy files within the directory.
-    local handle = io.popen("ls -1 \"" .. src .. "\" 2>/dev/null")
-    if handle then
-        for file in handle:lines() do
-            if file ~= "" then
-                os.execute("cp -r \"" .. src .. "/" .. file .. "\" \"" .. dst .. "/\" 2>/dev/null")
-            end
-        end
-        handle:close()
-    end
-end
-
-for _, file in ipairs(files) do
-    local src = sourceDir .. "/" .. file
-    local dst = pluginDir .. "/" .. file
-    os.execute("cp \"" .. src .. "\" \"" .. dst .. "\" 2>/dev/null")
-end
-
-print("[DepthCorrect] Plugin installed successfully!")
-print("[DepthCorrect] To use the plugin:")
-print("  1. Restart DaVinci Resolve")
-print("  2. Go to the Deliver page")
-print("  3. Find the DepthCorrect panel in the Extensions section")
-print("  4. Or search for 'DepthCorrect' in the Resolve UI")
-
+print("[DepthCorrect] Plugin installed successfully.")
+print("[DepthCorrect] Restart DaVinci Resolve, then open Workspace > Workflow Integrations > DepthCorrect.")
 return true
