@@ -1,11 +1,11 @@
 {
   "name": "DepthCorrect",
   "version": "1.0.0",
-  "description": "Dynamic Z-Scale perspective correction for After Effects and DaVinci Resolve.",
-  "repository": "https://github.com/depthcorrect/depthcorrect",
-  "homepage": "https://github.com/depthcorrect/depthcorrect#readme",
+  "description": "Depth-based scale correction tools for After Effects and DaVinci Resolve.",
+  "repository": "https://github.com/OseMine/DepthCorrect",
+  "homepage": "https://github.com/OseMine/DepthCorrect#readme",
   "license": "MIT",
-  "author": "DepthCorrect Contributors",
-  "bugs": "https://github.com/depthcorrect/depthcorrect/issues",
+  "author": "OseMine",
+  "bugs": "https://github.com/OseMine/DepthCorrect/issues",
   "keywords": ["after-effects", "davinci-resolve", "cep", "workflow-integration", "z-scale"]
 }

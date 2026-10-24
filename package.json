@@ -1,24 +1,27 @@
 {
-  "name": "DepthCorrect",
+  "name": "depthcorrect",
   "version": "1.0.0",
-  "description": "Dynamic Z-Scale perspective correction extension for After Effects and DaVinci Resolve Workflow Integration.",
-  "main": "com.depthcorrect.zscale/index.html",
+  "private": true,
+  "description": "Depth-based scale correction tools for After Effects and DaVinci Resolve.",
+  "main": "com.depthcorrect.zscale.ae/index.html",
   "keywords": ["after-effects", "davinci-resolve", "workflow-integration", "z-scale", "perspective", "depth-correct"],
-  "author": "DepthCorrect Contributors",
+  "author": "OseMine",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/depthcorrect/depthcorrect.git"
+    "url": "https://github.com/OseMine/DepthCorrect.git"
   },
+  "homepage": "https://github.com/OseMine/DepthCorrect#readme",
   "bugs": {
-    "url": "https://github.com/depthcorrect/depthcorrect/issues"
+    "url": "https://github.com/OseMine/DepthCorrect/issues"
   },
-  "homepage": "https://github.com/depthcorrect/depthcorrect#readme",
-  "directories": {
-    "test": "tests"
+  "scripts": {
+    "test": "node --test com.depthcorrect.zscale.resolve/tests/*.test.js",
+    "check": "node scripts/check.js",
+    "package": "python scripts/package.py"
   },
-  "bugs": {
-    "url": "https://github.com/depthcorrect/depthcorrect/issues"
-  },
-  "homepage": "https://github.com/depthcorrect/depthcorrect"
+  "engines": {
+    "node": ">=20",
+    "python": ">=3.10"
+  }
 }

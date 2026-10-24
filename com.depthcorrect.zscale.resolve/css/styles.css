@@ -1,0 +1,47 @@
+:root {
+    color-scheme: dark;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #17191d;
+    color: #f1f0f7;
+    font-size: 13px;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+button, input { font: inherit; }
+.panel { display: flex; flex-direction: column; gap: 16px; padding: 16px; min-height: 100vh; }
+.header, .section-heading, .actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+h1, h2, p { margin: 0; }
+h1 { font-size: 19px; font-weight: 650; }
+.header p, .hint, footer p { color: #b9bac4; }
+.header p { margin-top: 4px; font-size: 12px; }
+h2 { font-size: 14px; }
+.settings { padding: 12px; border: 1px solid #393b44; border-radius: 10px; background: #202228; }
+.settings label { display: block; margin-bottom: 8px; font-weight: 600; }
+.number-field { display: flex; align-items: center; gap: 8px; }
+.number-field span { color: #b9bac4; }
+input[type="number"] { width: 112px; padding: 7px 8px; border: 1px solid #555761; border-radius: 6px; background: #17191d; color: inherit; }
+.hint { margin-top: 8px; font-size: 11px; }
+.clip-section { display: flex; flex: 1; flex-direction: column; min-height: 120px; }
+.section-heading { margin-bottom: 8px; }
+.section-heading span { color: #b9bac4; font-size: 11px; }
+.clips { display: flex; flex-direction: column; gap: 6px; overflow: auto; max-height: 52vh; }
+.clip, .empty { padding: 10px; border: 1px solid #393b44; border-radius: 8px; background: #202228; }
+.clip { display: grid; grid-template-columns: 20px minmax(0, 1fr) 102px; align-items: center; gap: 8px; }
+.clip input[type="checkbox"] { accent-color: #c7b8ff; }
+.clip-name { overflow: hidden; font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
+.clip-meta { margin-top: 3px; color: #b9bac4; font-size: 10px; }
+.clip-depth { display: flex; flex-direction: column; gap: 4px; color: #b9bac4; font-size: 10px; }
+.clip-depth input { width: 100%; }
+.empty { color: #b9bac4; text-align: center; }
+footer { display: flex; flex-direction: column; gap: 10px; }
+footer p { min-height: 16px; font-size: 11px; }
+button { min-height: 34px; padding: 0 12px; border: 0; border-radius: 18px; cursor: pointer; font-weight: 600; }
+button:disabled { cursor: not-allowed; opacity: .45; }
+.primary { background: #c7b8ff; color: #241b35; }
+.secondary { border: 1px solid #5c5e69; background: transparent; color: #f1f0f7; }
+.actions { justify-content: flex-end; }
+@media (max-width: 380px) {
+    .header { align-items: flex-start; flex-direction: column; }
+    .actions { align-items: stretch; flex-direction: column; }
+}

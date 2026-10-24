@@ -1,21 +1,22 @@
-# Contributing to DepthCorrect
+# Contributing
 
-Thanks for taking the time to contribute!
+Thanks for contributing to DepthCorrect.
 
-## How to contribute
+## Before opening a pull request
 
-1. Fork the repo and create a feature branch.
-2. Make changes in `com.depthcorrect.zscale/` (AE) or `com.depthcorrect.zscale.resolve/` (Resolve).
-3. Update relevant README sections if behavior changes.
-4. Open a Pull Request with a clear description.
+1. Create a branch from `main`.
+2. Keep changes scoped to After Effects, Resolve, packaging, or directly related documentation.
+3. Run `npm test`, `npm run check`, and `npm run package`.
+4. Update the relevant plugin README and `CHANGELOG.md` when behavior or installation changes.
+5. Open a pull request with a concise description, test results, and host application/version tested.
 
-## Development notes
+## Development
 
-- AE extension uses ExtendScript (ES3) in `jsx/host.jsx` and CEP panel HTML/JS.
-- Resolve plugin uses `WorkflowIntegration.node` and Resolve's object model.
-- Keep CSS tokens consistent across both UIs when possible.
-- Test on both Windows and macOS if you have access.
+- The After Effects extension uses CEP HTML/CSS/JavaScript and ExtendScript (ES3) in `com.depthcorrect.zscale.ae/`.
+- The Resolve workflow plugin uses the host-provided Electron runtime and `WorkflowIntegration.node`; the bridge binary must not be committed.
+- Keep host API access in the plugin's main process. The renderer should use only the narrow preload bridge.
+- Do not add dependencies unless they are needed. Keep release archives reproducible with `npm run package`.
 
-## Code of Conduct
+## Code of conduct
 
-Be respectful and constructive. No harassment, please.
+Be respectful and constructive. Harassment or abusive behavior is not acceptable.

@@ -1,0 +1,9 @@
+{
+  "name": "depthcorrect-resolve",
+  "productName": "DepthCorrect",
+  "version": "1.0.0",
+  "description": "Static depth-based zoom correction for DaVinci Resolve timelines.",
+  "main": "main.js",
+  "license": "MIT",
+  "private": true
+}

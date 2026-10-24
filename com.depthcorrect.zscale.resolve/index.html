@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self';">
+    <title>DepthCorrect</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <main class="panel">
+        <header class="header">
+            <div>
+                <h1>DepthCorrect</h1>
+                <p>Static depth-based zoom correction</p>
+            </div>
+            <button id="scan" class="secondary">Scan timeline</button>
+        </header>
+
+        <section class="settings" aria-label="Correction settings">
+            <label for="reference">Reference distance</label>
+            <div class="number-field">
+                <input id="reference" type="number" min="0.01" step="any" value="1000">
+                <span>units</span>
+            </div>
+            <p class="hint">Clips at this distance keep their current zoom.</p>
+        </section>
+
+        <section class="clip-section">
+            <div class="section-heading">
+                <h2>Video clips</h2>
+                <span id="clip-count">0 clips</span>
+            </div>
+            <div id="clips" class="clips" aria-live="polite">
+                <p class="empty">Open a timeline and scan to list its video clips.</p>
+            </div>
+        </section>
+
+        <footer>
+            <p id="status" role="status">Resolve connection pending.</p>
+            <div class="actions">
+                <button id="restore" class="secondary" disabled>Restore original zoom</button>
+                <button id="apply" class="primary" disabled>Apply correction</button>
+            </div>
+        </footer>
+    </main>
+    <script src="js/renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BlackmagicDesign>
+    <Plugin>
+        <Id>com.depthcorrect.zscale.resolve</Id>
+        <Name>DepthCorrect</Name>
+        <Version>1.0.0</Version>
+        <Description>Apply manually driven depth-based clip zoom correction</Description>
+        <FilePath>main.js</FilePath>
+    </Plugin>
+</BlackmagicDesign>

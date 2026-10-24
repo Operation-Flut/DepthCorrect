@@ -1,9 +1,12 @@
 # Compiled extensions / plugins
 *.zxp
+dist/
 *.zip
 
 # Dependencies
 node_modules/
+__pycache__/
+.pytest_cache/
 
 # OS
 .DS_Store
