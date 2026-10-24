@@ -36,22 +36,22 @@ jobs:
         with:
           python-version: "3.12"
 
-      # WorkflowIntegration.node is proprietary and must be supplied by the
-      # local Resolve SDK. It is intentionally excluded from CI artifacts.
       - name: Validate JavaScript syntax and repository structure
         run: npm run check
 
       - name: Run tests
         run: npm test
 
-      - name: Build release archives
+      - name: Build release archives (ZIP & ZXP)
         run: npm run package
 
       - name: Upload plugin archives (${{ matrix.os }})
         uses: actions/upload-artifact@v7
         with:
           name: DepthCorrect-${{ matrix.os }}
-          path: dist/*.zip
+          path: |
+            dist/*.zip
+            dist/*.zxp
           if-no-files-found: error
           retention-days: 7
 

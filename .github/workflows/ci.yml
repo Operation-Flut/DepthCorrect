@@ -26,11 +26,13 @@ jobs:
         run: npm run check
       - name: Run tests
         run: npm test
-      - name: Build release archives
+      - name: Build release archives (ZIP & ZXP)
         run: npm run package
-      - name: Upload plugin archives
+      - name: Upload preview artifacts
         uses: actions/upload-artifact@v7
         with:
           name: DepthCorrect-preview
-          path: dist/*.zip
+          path: |
+            dist/*.zip
+            dist/*.zxp
           if-no-files-found: error

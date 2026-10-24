@@ -16,3 +16,6 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+DepthCorrect/vendor/*
+!DepthCorrect/vendor/.gitkeep

@@ -25,6 +25,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
       - name: Resolve release tag
         id: resolve-tag
         shell: bash
@@ -38,14 +39,13 @@ jobs:
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Resolved release tag: $TAG"
-      # WorkflowIntegration.node is proprietary and must be supplied by the
-      # local Resolve SDK. It is intentionally excluded from release archives.
 
-      - name: Validate and test
+      - name: Build release archives (ZIP & ZXP)
         run: |
           npm run check
           npm test
           npm run package
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
@@ -53,7 +53,6 @@ jobs:
           name: DepthCorrect ${{ steps.resolve-tag.outputs.tag }}
           files: |
             dist/*.zip
-            README.md
-            LICENSE
-            CHANGELOG.md
+            dist/*.zxp
+            scripts/installer.lua
           generate_release_notes: true
