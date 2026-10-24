@@ -1,0 +1,26 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify extension files exist
+        run: |
+          test -f com.depthcorrect.zscale/CSXS/manifest.xml
+          test -f com.depthcorrect.zscale/jsx/host.jsx
+          test -f com.depthcorrect.zscale.resolve/manifest.xml
+          test -f com.depthcorrect.zscale.resolve/package.js
+          echo "All extension and plugin files present."
+      - name: Verify docs
+        run: |
+          test -f README.md
+          test -f CHANGELOG.md
+          test -f RELEASE.md
+          echo "Project docs verified."

@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify structure
+        run: |
+          echo "Checking AE extension..."
+          test -f com.depthcorrect.zscale/CSXS/manifest.xml
+          echo "Checking Resolve plugin..."
+          test -f com.depthcorrect.zscale.resolve/manifest.xml
+          echo "Checking README..."
+          test -f README.md
+          echo "All checks passed."
+
+  release:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            com.depthcorrect.zscale.zip
+            com.depthcorrect.zscale.resolve.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

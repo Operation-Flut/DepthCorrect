@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DepthCorrect</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Load CSInterface for communication with ExtendScript -->
+    <script src="js/CSInterface.js"></script>
+    <script src="js/vulcan.js"></script>
+</head>
+<body>
+    <div class="panel-container">
+        <!-- 1. Minimal Header -->
+        <header class="app-bar">
+            <div class="brand">
+                <div class="brand-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                        <polyline points="2 17 12 22 22 17"></polyline>
+                        <polyline points="2 12 12 17 22 12"></polyline>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1 class="brand-title">DepthCorrect</h1>
+                    <span class="brand-subtitle">Dynamic Z-Scale</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button id="scan-btn" class="icon-btn-ghost" title="Rescan composition layers" aria-label="Rescan">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- 2. Primary Smart Action Button -->
+        <div class="hero-action-container">
+            <button id="apply-btn" class="m3-btn m3-btn-filled hero-btn">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                <span id="apply-btn-label">Apply to Selected Layers</span>
+            </button>
+        </div>
+
+        <!-- 3. Composition Layers List (Core Real Estate) -->
+        <section class="m3-card layers-card">
+            <div class="card-header">
+                <span class="card-title">Layers</span>
+                <span id="layer-count" class="m3-badge">0 total</span>
+            </div>
+            <div id="layer-list" class="layer-list">
+                <div class="empty-state">
+                    <svg class="empty-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                        <polyline points="2 17 12 22 22 17"></polyline>
+                        <polyline points="2 12 12 17 22 12"></polyline>
+                    </svg>
+                    <p>No 3D layers found</p>
+                    <span>Select a layer in AE or click Scan</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Collapsible Advanced Settings -->
+        <details class="m3-accordion" id="advanced-accordion">
+            <summary class="accordion-summary">
+                <div class="summary-left">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    <span>Advanced Settings</span>
+                </div>
+                <svg class="accordion-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </summary>
+
+            <div class="accordion-content">
+                <!-- Compact Distance Setting -->
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-name">Lock to Current Distance</span>
+                        <span class="setting-desc">Keep visual size when applying</span>
+                    </div>
+                    <label class="m3-switch" aria-label="Lock to Current Distance">
+                        <input type="checkbox" id="use-current-dist" checked>
+                        <span class="m3-switch-track">
+                            <span class="m3-switch-thumb"></span>
+                        </span>
+                    </label>
+                </div>
+
+                <!-- Custom Reference Distance (Shown when Lock is toggled off) -->
+                <div class="setting-row" id="custom-dist-row" style="display: none;">
+                    <div class="setting-info">
+                        <span class="setting-name">Custom Distance</span>
+                        <span class="setting-desc">Distance where scale = 100%</span>
+                    </div>
+                    <div class="m3-input-inline">
+                        <input type="number" id="ref-distance" value="1000" min="1" max="100000" step="50">
+                        <span class="unit">px</span>
+                    </div>
+                </div>
+
+                <div class="m3-divider-subtle"></div>
+
+                <!-- Base Scale Override (Uniform by default) -->
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-name">Base Scale</span>
+                        <span class="setting-desc">Multiplier for selected layer</span>
+                    </div>
+                    <div class="m3-input-inline">
+                        <input type="number" id="base-scale-uniform" value="100" min="1" max="1000" step="5">
+                        <span class="unit">%</span>
+                    </div>
+                </div>
+
+                <!-- Optional Uncoupled Axes -->
+                <div class="uncouple-wrap">
+                    <button type="button" id="toggle-axes-btn" class="link-btn">
+                        <span>Uncouple X, Y, Z</span>
+                    </button>
+                    <div id="axes-grid" class="axes-grid" style="display: none;">
+                        <div class="axis-box">
+                            <span class="axis-tag axis-x">X</span>
+                            <input type="number" id="base-scale-x" value="100" min="1" max="1000">%
+                        </div>
+                        <div class="axis-box">
+                            <span class="axis-tag axis-y">Y</span>
+                            <input type="number" id="base-scale-y" value="100" min="1" max="1000">%
+                        </div>
+                        <div class="axis-box">
+                            <span class="axis-tag axis-z">Z</span>
+                            <input type="number" id="base-scale-z" value="100" min="1" max="1000">%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <!-- Subtle Feedback Toast (Appears briefly, doesn't eat vertical layout) -->
+        <div id="toast" class="m3-toast" style="display: none;">
+            <span id="toast-text"></span>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

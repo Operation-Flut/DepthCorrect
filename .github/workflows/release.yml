@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [created, published]
+
+jobs:
+  build-distribution:
+    name: Build DepthCorrect Distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package AE Extension
+        run: |
+          zip -r com.depthcorrect.zscale.zip com.depthcorrect.zscale/
+      - name: Package Resolve Plugin
+        run: |
+          zip -r com.depthcorrect.zscale.resolve.zip com.depthcorrect.zscale.resolve/
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "DepthCorrect ${{ github.ref_name }}"
+          files: |
+            com.depthcorrect.zscale.zip
+            com.depthcorrect.zscale.resolve.zip
+            README.md
+            LICENSE
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,15 @@
+# Compiled extensions / plugins
+*.zxp
+*.zip
+
+# Dependencies
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local dev
+.idea/
+.vscode/
+*.swp

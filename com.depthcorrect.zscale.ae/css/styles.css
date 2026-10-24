@@ -1,0 +1,652 @@
+/* ========================================================
+   DepthCorrect - Material Design 3 (Clean & Consolidated)
+   ======================================================== */
+
+:root {
+    /* M3 Color Tokens */
+    --md-primary: #38e586;
+    --md-primary-hover: #4df498;
+    --md-primary-active: #23ce71;
+    --md-on-primary: #042911;
+    --md-primary-container: #103c20;
+    --md-on-primary-container: #85f6a6;
+
+    --md-surface: #121513;
+    --md-surface-dim: #0e110f;
+    --md-surface-container-lowest: #0c0e0c;
+    --md-surface-container-low: #161b18;
+    --md-surface-container: #1c221e;
+    --md-surface-container-high: #242a26;
+    --md-surface-container-highest: #2b332d;
+
+    --md-on-surface: #e4ebe5;
+    --md-on-surface-variant: #9aa59d;
+    --md-outline: #465148;
+    --md-outline-variant: #28312a;
+
+    --md-error: #ff7575;
+    --md-on-error: #450005;
+
+    /* Shape & Motion */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-full: 9999px;
+    --ease-m3: cubic-bezier(0.2, 0, 0, 1);
+    --transition: all 0.2s var(--ease-m3);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--md-on-surface);
+    background: var(--md-surface);
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+}
+
+.panel-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 12px 12px 10px;
+    gap: 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* ========================================================
+   1. Minimal Header
+   ======================================================== */
+.app-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 2px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.brand-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-md);
+    background: var(--md-primary-container);
+    color: var(--md-primary);
+    border: 1px solid rgba(56, 229, 134, 0.25);
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.brand-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--md-on-surface);
+    line-height: 1.15;
+}
+
+.brand-subtitle {
+    font-size: 9.5px;
+    color: var(--md-on-surface-variant);
+    letter-spacing: 0.1px;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.icon-btn-ghost {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-full);
+    background: transparent;
+    border: none;
+    color: var(--md-on-surface-variant);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.icon-btn-ghost:hover {
+    background: var(--md-surface-container-high);
+    color: var(--md-on-surface);
+}
+
+.icon-btn-ghost:active {
+    transform: scale(0.92);
+}
+
+/* ========================================================
+   2. Primary Hero Action Button
+   ======================================================== */
+.hero-action-container {
+    display: flex;
+}
+
+.hero-btn {
+    width: 100%;
+    height: 42px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    gap: 8px;
+    border-radius: var(--radius-full);
+    background: var(--md-primary);
+    color: var(--md-on-primary);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 10px rgba(56, 229, 134, 0.25);
+    transition: var(--transition);
+}
+
+.hero-btn:hover:not(:disabled) {
+    background: var(--md-primary-hover);
+    box-shadow: 0 4px 14px rgba(56, 229, 134, 0.38);
+    transform: translateY(-1px);
+}
+
+.hero-btn:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+}
+
+.hero-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* ========================================================
+   3. Composition Layers List (Core Content)
+   ======================================================== */
+.layers-card {
+    background: var(--md-surface-container);
+    border: 1px solid var(--md-outline-variant);
+    border-radius: var(--radius-lg);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    min-height: 140px;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 2px;
+}
+
+.card-title {
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--md-on-surface-variant);
+}
+
+.m3-badge {
+    background: var(--md-surface-container-highest);
+    color: var(--md-on-surface);
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--md-outline-variant);
+    transition: var(--transition);
+}
+
+.m3-badge.has-active {
+    background: var(--md-primary-container);
+    color: var(--md-on-primary-container);
+    border-color: rgba(56, 229, 134, 0.3);
+}
+
+.layer-list {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--md-surface-container-lowest);
+    border: 1px solid var(--md-outline-variant);
+    border-radius: var(--radius-md);
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 220px;
+}
+
+/* Leaner Layer Row */
+.layer-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--md-surface-container-low);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    gap: 8px;
+    transition: var(--transition);
+}
+
+.layer-item:hover {
+    background: var(--md-surface-container);
+    border-color: rgba(56, 229, 134, 0.25);
+}
+
+.layer-item.is-selected {
+    background: var(--md-surface-container);
+    border-color: var(--md-primary);
+}
+
+.layer-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1;
+    cursor: pointer;
+}
+
+.layer-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--md-on-surface);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.layer-meta {
+    font-size: 10px;
+    color: var(--md-on-surface-variant);
+}
+
+.layer-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.m3-chip-active {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    font-size: 9.5px;
+    font-weight: 600;
+    border-radius: var(--radius-full);
+    background: var(--md-primary-container);
+    color: var(--md-on-primary-container);
+    border: 1px solid rgba(56, 229, 134, 0.3);
+}
+
+.layer-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-full);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--md-on-surface-variant);
+}
+
+.layer-btn:hover {
+    background: var(--md-surface-container-highest);
+}
+
+.layer-btn-remove:hover {
+    background: rgba(255, 117, 117, 0.15);
+    color: var(--md-error);
+}
+
+.layer-btn-apply {
+    color: var(--md-primary);
+}
+
+.layer-btn-apply:hover {
+    background: var(--md-primary-container);
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 10px;
+    text-align: center;
+    color: var(--md-on-surface-variant);
+    gap: 3px;
+}
+
+.empty-icon {
+    color: var(--md-outline);
+    margin-bottom: 2px;
+}
+
+.empty-state p {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--md-on-surface);
+}
+
+.empty-state span {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+/* ========================================================
+   4. Collapsible Advanced Settings (Accordion)
+   ======================================================== */
+.m3-accordion {
+    background: var(--md-surface-container);
+    border: 1px solid var(--md-outline-variant);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.accordion-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+    list-style: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--md-on-surface-variant);
+    transition: var(--transition);
+}
+
+.accordion-summary::-webkit-details-marker {
+    display: none;
+}
+
+.accordion-summary:hover {
+    color: var(--md-on-surface);
+    background: var(--md-surface-container-high);
+}
+
+.summary-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.accordion-chevron {
+    transition: transform 0.25s var(--ease-m3);
+    color: var(--md-on-surface-variant);
+}
+
+.m3-accordion[open] .accordion-chevron {
+    transform: rotate(180deg);
+}
+
+.accordion-content {
+    padding: 6px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-top: 1px solid var(--md-outline-variant);
+    background: var(--md-surface-container-low);
+}
+
+.setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.setting-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.setting-name {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--md-on-surface);
+}
+
+.setting-desc {
+    font-size: 10px;
+    color: var(--md-on-surface-variant);
+}
+
+.m3-input-inline {
+    display: flex;
+    align-items: center;
+    background: var(--md-surface-container-lowest);
+    border: 1px solid var(--md-outline-variant);
+    border-radius: var(--radius-sm);
+    padding: 0 8px;
+    height: 30px;
+    gap: 4px;
+    width: 90px;
+    transition: var(--transition);
+}
+
+.m3-input-inline:focus-within {
+    border-color: var(--md-primary);
+    box-shadow: 0 0 0 2px rgba(56, 229, 134, 0.18);
+}
+
+.m3-input-inline input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--md-on-surface);
+    text-align: right;
+}
+
+.unit {
+    font-size: 10px;
+    color: var(--md-on-surface-variant);
+}
+
+.m3-divider-subtle {
+    height: 1px;
+    background: var(--md-outline-variant);
+    opacity: 0.6;
+}
+
+/* Compact M3 Switch */
+.m3-switch {
+    position: relative;
+    display: inline-block;
+    width: 42px;
+    height: 24px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.m3-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.m3-switch-track {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--md-surface-container-highest);
+    border: 1.5px solid var(--md-outline);
+    border-radius: var(--radius-full);
+    transition: var(--transition);
+}
+
+.m3-switch-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    background: var(--md-outline);
+    border-radius: var(--radius-full);
+    transition: var(--transition);
+}
+
+.m3-switch input:checked + .m3-switch-track {
+    background: var(--md-primary);
+    border-color: var(--md-primary);
+}
+
+.m3-switch input:checked + .m3-switch-track .m3-switch-thumb {
+    transform: translateX(18px);
+    background: var(--md-on-primary);
+}
+
+/* Uncoupled Axes */
+.uncouple-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.link-btn {
+    background: transparent;
+    border: none;
+    color: var(--md-primary);
+    font-size: 10.5px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    padding: 0;
+    width: fit-content;
+}
+
+.link-btn:hover {
+    text-decoration: underline;
+}
+
+.axes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+
+.axis-box {
+    display: flex;
+    align-items: center;
+    background: var(--md-surface-container-lowest);
+    border: 1px solid var(--md-outline-variant);
+    border-radius: var(--radius-sm);
+    padding: 2px 6px;
+    height: 28px;
+    font-size: 10.5px;
+    color: var(--md-on-surface-variant);
+}
+
+.axis-box input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--md-on-surface);
+    text-align: right;
+    padding-right: 2px;
+}
+
+.axis-tag {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-right: 2px;
+}
+
+.axis-x { background: rgba(255, 107, 107, 0.16); color: #ff8585; }
+.axis-y { background: rgba(56, 229, 134, 0.16); color: var(--md-primary); }
+.axis-z { background: rgba(94, 182, 255, 0.16); color: #7cc2ff; }
+
+/* Subtle Toast */
+.m3-toast {
+    position: fixed;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--md-surface-container-highest);
+    color: var(--md-on-surface);
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid var(--md-outline-variant);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+    z-index: 100;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, 6px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Remove spin buttons */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--md-surface-container-highest);
+    border-radius: var(--radius-full);
+}

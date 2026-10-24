@@ -1,0 +1,13 @@
+# .gitattributes
+* text=auto eol=lf
+
+# Ignore build artifacts / package outputs
+*.zip
+*.zxp
+node_modules/
+dist/
+build/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
