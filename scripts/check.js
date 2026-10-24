@@ -18,7 +18,8 @@ const requiredFiles = [
     'com.depthcorrect.zscale.resolve/main.js',
     'com.depthcorrect.zscale.resolve/preload.js',
     'com.depthcorrect.zscale.resolve/index.html',
-    'com.depthcorrect.zscale.resolve/js/renderer.js'
+    'com.depthcorrect.zscale.resolve/js/renderer.js',
+    'com.depthcorrect.zscale.resolve/js/fusion.js'
 ];
 
 for (const relativePath of requiredFiles) {
@@ -32,7 +33,8 @@ const javascriptFiles = [
     'com.depthcorrect.zscale.resolve/main.js',
     'com.depthcorrect.zscale.resolve/preload.js',
     'com.depthcorrect.zscale.resolve/js/renderer.js',
-    'com.depthcorrect.zscale.resolve/js/scale.js'
+    'com.depthcorrect.zscale.resolve/js/scale.js',
+    'com.depthcorrect.zscale.resolve/js/fusion.js'
 ];
 
 for (const relativePath of javascriptFiles) {

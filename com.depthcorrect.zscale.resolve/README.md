@@ -1,10 +1,14 @@
 # DepthCorrect for DaVinci Resolve
 
-DepthCorrect for Resolve is a Workflow Integration plugin that applies a **static** zoom correction to video clips on the current timeline. Enter each clip's relative depth and a reference distance; the plugin applies the same `distance / reference distance` multiplier to the clip's horizontal and vertical zoom.
+DepthCorrect for Resolve is a Workflow Integration plugin that applies a **live** depth-based scale correction to selected `Transform3D` nodes in the active Fusion composition. Each node's scale is driven by an expression that multiplies its original scale by `camera-to-node distance / reference distance`, so the correction updates automatically as the camera or nodes move.
 
-## Important difference from After Effects
+## How it works
 
-Resolve's public timeline API does not expose AE-style expressions, 3D composition layers, or an active composition camera. This plugin cannot automatically measure or animate camera-to-subject distance. Enter depth values manually; the result is a static timeline clip zoom adjustment. It only changes video clip `ZoomX` and `ZoomY` properties.
+1. The plugin scans the active Fusion composition for selected `Transform3D` nodes and available `Camera3D` nodes.
+2. You choose which camera drives the correction and set a reference distance.
+3. On **Apply**, DepthCorrect captures each node's current scale and attaches a live Lua expression to the `Scale.X`, `Scale.Y`, and `Scale.Z` inputs.
+4. The expression computes world-space distance using `Transform3DOp.Translate`, so parent hierarchies and animations are respected.
+5. On **Restore original**, the expressions are cleared and the original scale values are restored.
 
 ## Requirements
 
@@ -21,26 +25,32 @@ Resolve's public timeline API does not expose AE-style expressions, 3D compositi
    - **Windows:** `com.depthcorrect.zscale.resolve\native\windows-x64\WorkflowIntegration.node`
    - **macOS (Apple Silicon or universal):** `com.depthcorrect.zscale.resolve/native/macos-universal/WorkflowIntegration.node`
    Create the `native` and platform subfolders if they are not present in the extracted archive.
-4. Restart Resolve, open a project and timeline, then choose **Workspace > Workflow Integrations > DepthCorrect**.
+4. Restart Resolve, open a Fusion composition with `Transform3D` and `Camera3D` nodes, then choose **Workspace > Workflow Integrations > DepthCorrect**.
 
 The bridge is version- and platform-specific. Do not download an unrelated copy from another plugin or commit it to this repository.
 
 ## Use
 
-1. Open a timeline and click **Scan timeline**. The list includes video clips from all video tracks.
-2. Set a reference distance in the panel. The depth value represents the clip's relative distance from the viewer/camera; it is not inferred from Resolve.
-3. Enter a depth for each clip and select the clips to change.
-4. Click **Apply correction**. The plugin multiplies the original X/Y zoom by `depth / reference distance`.
-5. Select corrected clips and click **Restore original zoom** to return to the captured X/Y zoom.
+1. In the Fusion page, select one or more `Transform3D` nodes.
+2. Click **Scan composition**. The list shows each selected node and its current scale. Camera3D nodes found in the composition appear in the dropdown.
+3. Select the camera that should drive the correction. If there is only one camera, it is pre-selected.
+4. Set the reference distance. Nodes at this distance from the camera keep their current scale.
+5. Check the nodes to correct and click **Apply correction**. A live scale expression is attached to each node.
+6. Move the camera or nodes to see the correction update in real time.
+7. Select corrected nodes and click **Restore original** to remove the expressions and return to the captured scale values.
 
-Original zoom values are stored in the plugin's local application data so they can be restored after Resolve is restarted. The restore record is associated with the project, timeline, track, clip name, and clip timing; changing those identifiers can prevent a record from matching.
+## Node naming
+
+Fusion expression references require valid identifiers (letters, numbers, and underscores). If a node name contains spaces or special characters, rename it in the Fusion node graph before applying correction.
 
 ## Troubleshooting
 
 - **Plugin is not listed:** confirm the extracted folder is directly inside the Workflow Integration Plugins directory and restart Resolve.
 - **Cannot connect to Resolve / missing native bridge:** verify that the correct platform `WorkflowIntegration.node` file is in the path above.
-- **No clips appear:** open a timeline containing video clips, then scan again.
-- **Unexpected zoom:** check the entered distance and reference values. A clip at the reference distance retains its current zoom; a clip farther away receives a larger zoom multiplier.
+- **Fusion is not active:** switch to the Fusion page and open a composition before scanning.
+- **No Transform3D nodes appear:** select Transform3D nodes in the node graph before scanning.
+- **No Camera3D found:** add a Camera3D tool to the composition.
+- **Expression error on apply:** rename any nodes with spaces or special characters in their names.
 
 ## Development
 

@@ -14,7 +14,7 @@ contextBridge.exposeInMainWorld('depthCorrect', {
     apply: function (options) {
         return ipcRenderer.invoke('depthcorrect:apply', options);
     },
-    restore: function (options) {
-        return ipcRenderer.invoke('depthcorrect:restore', options);
+    remove: function (options) {
+        return ipcRenderer.invoke('depthcorrect:remove', options);
     }
 });

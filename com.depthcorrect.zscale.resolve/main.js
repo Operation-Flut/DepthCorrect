@@ -1,7 +1,9 @@
 'use strict';
 
 const { app, BrowserWindow, ipcMain } = require('electron');
+const fs = require('node:fs');
 const path = require('node:path');
+const { expressionForScale, getVectorComponents } = require('./js/fusion');
 
 const PLUGIN_ID = 'com.depthcorrect.zscale.resolve';
 const ORIGINAL_SCALE_KEY = 'DepthCorrect.OriginalScale';
@@ -16,6 +18,10 @@ let window;
 let fusionComp;
 let selectedTools = new Map();
 let cameraTools = new Map();
+
+// ---------------------------------------------------------------------------
+// Tool helpers
+// ---------------------------------------------------------------------------
 
 function assertIdentifier(name, label) {
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
@@ -34,70 +40,91 @@ function getToolId(attrs) {
     return String(attrs && (attrs.TOOLS_RegID || attrs.TOOLS_RegId || attrs.TOOLST_RegID) || '');
 }
 
-function getToolMap(tools) {
-    const result = new Map();
-    if (!tools) return result;
-    for (const [key, tool] of Object.entries(tools)) {
-        if (!tool || typeof tool !== 'object') continue;
-        const attrs = tool.GetAttrs();
-        const name = getToolName(attrs);
-        result.set(name, { name: name, id: name, regId: getToolId(attrs), tool: tool, attrs: attrs, key: key });
-    }
-    return result;
-}
+function getVector(tool, inputId) {
+    return tool.GetInput(inputId, fusionComp.CurrentTime).then(function (value) {
+        const vector = getVectorComponents(value);
+        if (vector && vector.every(Number.isFinite)) return vector;
 
-function parameterAxis(value, axis, index) {
-    if (value === null || value === undefined) return undefined;
-    if (typeof value === 'number') return index === 0 ? value : undefined;
-    if (Array.isArray(value)) return value[index];
-    if (typeof value === 'object') {
-        if (Number.isFinite(Number(value[axis]))) return Number(value[axis]);
-        if (Number.isFinite(Number(value[index + 1]))) return Number(value[index + 1]);
-        if (Number.isFinite(Number(value[index]))) return Number(value[index]);
-    }
-    return undefined;
-}
-
-async function getVector(tool, inputId) {
-    const value = await tool.GetInput(inputId, fusionComp.CurrentTime);
-    const axes = ['X', 'Y', 'Z'];
-    const vector = axes.map(function (axis, index) {
-        return parameterAxis(value, axis, index);
+        // Fall back to reading sub-inputs individually.
+        return Promise.all([
+            tool.GetInput(inputId + '.X', fusionComp.CurrentTime),
+            tool.GetInput(inputId + '.Y', fusionComp.CurrentTime),
+            tool.GetInput(inputId + '.Z', fusionComp.CurrentTime)
+        ]).then(function (components) {
+            if (components.every(Number.isFinite)) return components;
+            throw new Error('Could not read ' + inputId + ' from node "' +
+                getToolName(tool.GetAttrs()) + '".');
+        });
     });
-    if (vector.some(function (component) { return !Number.isFinite(component); })) {
-        throw new Error('Could not read ' + inputId + ' from node "' + getToolName(tool.GetAttrs()) + '".');
-    }
-    return vector;
 }
 
-function getSelectedTransformTools() {
-    return fusionComp.GetToolList(true, 'Transform3D');
+// ---------------------------------------------------------------------------
+// Scan
+// ---------------------------------------------------------------------------
+
+function getScaleInput(tool, axis) {
+    if (typeof tool.FindInput === 'function') {
+        const input = tool.FindInput('Scale.' + axis);
+        if (input && typeof input.SetExpression === 'function') return input;
+    }
+    throw new Error('Fusion did not expose the Scale.' + axis +
+        ' expression input on "' + getToolName(tool.GetAttrs()) + '".');
 }
 
 async function scanFusion() {
     if (!ready) throw new Error('The Resolve Workflow Integration bridge is not ready.');
     const fusion = await resolve.Fusion();
-    fusionComp = fusion && await fusion.GetCurrentComp();
+    if (!fusion) {
+        selectedTools = new Map();
+        cameraTools = new Map();
+        throw new Error('Fusion is not active. Switch to the Fusion page, open a composition, select Transform3D nodes, and scan again.');
+    }
+    fusionComp = await fusion.GetCurrentComp();
     if (!fusionComp) {
         selectedTools = new Map();
         cameraTools = new Map();
         throw new Error('Open a Fusion composition, select one or more Transform3D nodes, and scan again.');
     }
 
-    const transforms = getToolMap(await getSelectedTransformTools());
-    const cameras = getToolMap(await fusionComp.GetToolList(false, 'Camera3D'));
+    // Selected Transform3D tools.
+    const rawSelected = await fusionComp.GetToolList(true);
     selectedTools = new Map();
-    cameraTools = cameras;
-    const nodes = [];
+    if (rawSelected) {
+        const keys = Object.keys(rawSelected);
+        for (let i = 0; i < keys.length; i += 1) {
+            const tool = rawSelected[keys[i]];
+            if (!tool || typeof tool !== 'object') continue;
+            const attrs = tool.GetAttrs();
+            const regId = getToolId(attrs);
+            if (regId.indexOf('Transform3D') !== 0 && regId !== 'Transform3DOp') continue;
+            const name = getToolName(attrs);
+            selectedTools.set(name, { name: name, regId: regId, tool: tool });
+        }
+    }
 
-    for (const [name, entry] of transforms) {
+    // All Camera3D tools.
+    const rawAll = await fusionComp.GetToolList(false);
+    cameraTools = new Map();
+    if (rawAll) {
+        const keys = Object.keys(rawAll);
+        for (let i = 0; i < keys.length; i += 1) {
+            const tool = rawAll[keys[i]];
+            if (!tool || typeof tool !== 'object') continue;
+            const attrs = tool.GetAttrs();
+            const regId = getToolId(attrs);
+            if (regId.indexOf('Camera3D') !== 0) continue;
+            const name = getToolName(attrs);
+            cameraTools.set(name, { name: name, regId: regId, tool: tool });
+        }
+    }
+
+    const nodes = [];
+    for (const [name, entry] of selectedTools) {
         assertIdentifier(name, 'Transform3D');
         const scale = await getVector(entry.tool, 'Scale');
-        selectedTools.set(name, entry);
         nodes.push({
             id: name,
             name: name,
-            type: entry.regId,
             scaleX: scale[0],
             scaleY: scale[1],
             scaleZ: scale[2]
@@ -107,48 +134,29 @@ async function scanFusion() {
     return {
         compName: String(fusionComp.Name || 'Fusion composition'),
         nodes: nodes,
-        cameras: Array.from(cameras.values()).map(function (camera) {
-            return { id: camera.id, name: camera.name };
+        cameras: Array.from(cameraTools.values()).map(function (camera) {
+            return { id: camera.name, name: camera.name };
         })
     };
 }
+
+// ---------------------------------------------------------------------------
+// Apply / Remove
+// ---------------------------------------------------------------------------
 
 function requireSelectedNodes(ids) {
     if (!Array.isArray(ids) || ids.length === 0 || ids.some(function (id) { return typeof id !== 'string'; })) {
         throw new Error('Select one or more Transform3D nodes in the Fusion node graph, then scan again.');
     }
     const selected = [];
-    for (const id of ids) {
-        const entry = selectedTools.get(id);
+    for (let i = 0; i < ids.length; i += 1) {
+        const entry = selectedTools.get(ids[i]);
         if (!entry) {
             throw new Error('The Fusion selection changed. Select the intended Transform3D nodes and scan again.');
         }
         selected.push(entry);
     }
     return selected;
-}
-
-function expressionForAxis(nodeName, cameraName, baseScale, referenceDistance) {
-    const dx = '(' + nodeName + '.Translation.X-' + cameraName + '.Transform3DOp.Translate.X)';
-    const dy = '(' + nodeName + '.Translation.Y-' + cameraName + '.Transform3DOp.Translate.Y)';
-    const dz = '(' + nodeName + '.Translation.Z-' + cameraName + '.Transform3DOp.Translate.Z)';
-    const distance = 'sqrt(' + dx + '^2+' + dy + '^2+' + dz + '^2)';
-    return '(' + baseScale + ')*(' + distance + ')/(' + referenceDistance + ')';
-}
-
-function getScaleComponent(tool, axis) {
-    const scaleInput = tool.FindInput('Scale');
-    const input = scaleInput && scaleInput[axis];
-    if (!input || typeof input.SetExpression !== 'function') {
-        throw new Error('Fusion did not expose the Scale.' + axis + ' expression input.');
-    }
-    return input;
-}
-
-function getTranslationInput(tool) {
-    const input = tool.FindInput('Translation');
-    if (!input) throw new Error('Fusion did not expose the Translation input for the selected Transform3D node.');
-    return input;
 }
 
 async function applyCorrection(options) {
@@ -164,40 +172,41 @@ async function applyCorrection(options) {
 
     fusionComp.StartUndo('Apply DepthCorrect live scale');
     try {
-        for (const entry of nodes) {
+        const axes = ['X', 'Y', 'Z'];
+        for (let n = 0; n < nodes.length; n += 1) {
+            const entry = nodes[n];
             const tool = entry.tool;
             const scale = await getVector(tool, 'Scale');
-            const translation = await getVector(tool, 'Translation');
             const stored = tool.GetData(ORIGINAL_SCALE_KEY);
             const original = stored ? JSON.parse(stored) : scale;
-            const inputs = ['X', 'Y', 'Z'].map(function (axis) {
-                return getScaleComponent(tool, axis);
-            });
+            const inputs = axes.map(function (axis) { return getScaleInput(tool, axis); });
             changes.push({ tool: tool, inputs: inputs, scale: scale, stored: stored });
             tool.SetData(ORIGINAL_SCALE_KEY, JSON.stringify(original));
 
             for (let axis = 0; axis < 3; axis += 1) {
-                const expression = expressionForAxis(entry.name, camera.name, original[axis], referenceDistance);
+                const expression = expressionForScale(
+                    entry.name, camera.name, original[axis], referenceDistance
+                );
                 const result = inputs[axis].SetExpression(expression);
                 if (result === false) {
-                    throw new Error('Could not set the Scale.' + ['X', 'Y', 'Z'][axis] + ' expression on "' + entry.name + '".');
+                    throw new Error('Could not set Scale.' + axes[axis] + ' expression on "' + entry.name + '".');
                 }
-            }
-
-            const translationInput = getTranslationInput(tool);
-            if (translationInput && typeof translationInput.SetExpression === 'function') {
-                throw new Error('The selected Transform3D translation is expression-driven; DepthCorrect requires a directly controlled Translation input.');
             }
         }
         fusionComp.EndUndo(true);
     } catch (error) {
-        for (const change of changes.reverse()) {
+        const axes = ['X', 'Y', 'Z'];
+        for (let i = changes.length - 1; i >= 0; i -= 1) {
+            const change = changes[i];
             for (let axis = 0; axis < 3; axis += 1) {
                 change.inputs[axis].SetExpression('');
-                change.tool.SetInput('Scale.' + ['X', 'Y', 'Z'][axis], change.scale[axis], fusionComp.CurrentTime);
+                change.tool.SetInput('Scale.' + axes[axis], change.scale[axis], fusionComp.CurrentTime);
             }
-            if (change.stored) change.tool.SetData(ORIGINAL_SCALE_KEY, change.stored);
-            else change.tool.SetData(ORIGINAL_SCALE_KEY, nil);
+            if (change.stored) {
+                change.tool.SetData(ORIGINAL_SCALE_KEY, change.stored);
+            } else {
+                change.tool.SetData(ORIGINAL_SCALE_KEY, '');
+            }
         }
         fusionComp.EndUndo(false);
         throw error;
@@ -210,37 +219,33 @@ async function removeCorrection(ids) {
     const changes = [];
     fusionComp.StartUndo('Remove DepthCorrect live scale');
     try {
-        for (const entry of nodes) {
+        const axes = ['X', 'Y', 'Z'];
+        for (let n = 0; n < nodes.length; n += 1) {
+            const entry = nodes[n];
             const tool = entry.tool;
             const stored = tool.GetData(ORIGINAL_SCALE_KEY);
             if (!stored) continue;
             const original = JSON.parse(stored);
-            const scale = await getVector(tool, 'Scale');
-            const inputs = ['X', 'Y', 'Z'].map(function (axis) {
-                return getScaleComponent(tool, axis);
-            });
-            changes.push({ tool: tool, inputs: inputs, scale: scale, original: original });
+            const inputs = axes.map(function (axis) { return getScaleInput(tool, axis); });
+            changes.push({ tool: tool, inputs: inputs, original: original });
+
             for (let axis = 0; axis < 3; axis += 1) {
                 inputs[axis].SetExpression('');
-                tool.SetInput('Scale.' + ['X', 'Y', 'Z'][axis], original[axis], fusionComp.CurrentTime);
+                tool.SetInput('Scale.' + axes[axis], original[axis], fusionComp.CurrentTime);
             }
-            tool.SetData(ORIGINAL_SCALE_KEY, nil);
+            tool.SetData(ORIGINAL_SCALE_KEY, '');
         }
         fusionComp.EndUndo(true);
     } catch (error) {
-        for (const change of changes.reverse()) {
-            for (let axis = 0; axis < 3; axis += 1) {
-                change.inputs[axis].SetExpression(expressionForAxis(
-                    getToolName(change.tool.GetAttrs()), 'Camera3D1', change.original[axis], 1000
-                ));
-            }
-            change.tool.SetData(ORIGINAL_SCALE_KEY, JSON.stringify(change.original));
-        }
         fusionComp.EndUndo(false);
         throw error;
     }
     return { removed: changes.length };
 }
+
+// ---------------------------------------------------------------------------
+// IPC / Window / Lifecycle
+// ---------------------------------------------------------------------------
 
 function registerHandler(channel, handler) {
     ipcMain.handle(channel, async function (_event, value) {
@@ -284,7 +289,7 @@ app.whenReady().then(async function () {
     registerHandler('depthcorrect:remove', removeCorrection);
     createWindow();
 
-    if (!nativePath || !require('node:fs').existsSync(nativePath)) {
+    if (!nativePath || !fs.existsSync(nativePath)) {
         console.error('DepthCorrect could not find Resolve bridge:', nativePath || process.platform);
         return;
     }

@@ -12,9 +12,9 @@
         <header class="header">
             <div>
                 <h1>DepthCorrect</h1>
-                <p>Static depth-based zoom correction</p>
+                <p>Live depth-based scale correction for Fusion 3D</p>
             </div>
-            <button id="scan" class="secondary">Scan timeline</button>
+            <button id="scan" class="secondary">Scan composition</button>
         </header>
 
         <section class="settings" aria-label="Correction settings">
@@ -23,23 +23,30 @@
                 <input id="reference" type="number" min="0.01" step="any" value="1000">
                 <span>units</span>
             </div>
-            <p class="hint">Clips at this distance keep their current zoom.</p>
+            <p class="hint">Nodes at this distance from the camera keep their current scale.</p>
         </section>
 
-        <section class="clip-section">
+        <section class="camera-section" aria-label="Camera selection">
+            <label for="camera">Camera</label>
+            <select id="camera">
+                <option value="">— Select a Camera3D —</option>
+            </select>
+        </section>
+
+        <section class="nodes-section">
             <div class="section-heading">
-                <h2>Video clips</h2>
-                <span id="clip-count">0 clips</span>
+                <h2>Transform3D nodes</h2>
+                <span id="node-count">0 nodes</span>
             </div>
-            <div id="clips" class="clips" aria-live="polite">
-                <p class="empty">Open a timeline and scan to list its video clips.</p>
+            <div id="nodes" class="nodes" aria-live="polite">
+                <p class="empty">Open a Fusion composition, select one or more Transform3D nodes, then scan.</p>
             </div>
         </section>
 
         <footer>
-            <p id="status" role="status">Resolve connection pending.</p>
+            <p id="status" role="status">Fusion connection pending.</p>
             <div class="actions">
-                <button id="restore" class="secondary" disabled>Restore original zoom</button>
+                <button id="restore" class="secondary" disabled>Restore original</button>
                 <button id="apply" class="primary" disabled>Apply correction</button>
             </div>
         </footer>

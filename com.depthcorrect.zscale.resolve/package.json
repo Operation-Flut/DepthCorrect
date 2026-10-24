@@ -2,7 +2,7 @@
   "name": "depthcorrect-resolve",
   "productName": "DepthCorrect",
   "version": "1.0.0",
-  "description": "Static depth-based zoom correction for DaVinci Resolve timelines.",
+  "description": "Live depth-based scale correction for Fusion 3D nodes in DaVinci Resolve.",
   "main": "main.js",
   "license": "MIT",
   "private": true

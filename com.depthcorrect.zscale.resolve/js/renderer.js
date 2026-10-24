@@ -1,18 +1,19 @@
 'use strict';
 
 (function () {
-    const bridge = window.depthCorrect;
-    const elements = {
+    var bridge = window.depthCorrect;
+    var elements = {
         scan: document.getElementById('scan'),
         reference: document.getElementById('reference'),
-        clips: document.getElementById('clips'),
-        count: document.getElementById('clip-count'),
+        camera: document.getElementById('camera'),
+        nodes: document.getElementById('nodes'),
+        count: document.getElementById('node-count'),
         status: document.getElementById('status'),
         apply: document.getElementById('apply'),
         restore: document.getElementById('restore')
     };
-    let clips = [];
-    let busy = false;
+    var nodes = [];
+    var busy = false;
 
     function setStatus(text) {
         elements.status.textContent = text;
@@ -25,108 +26,118 @@
     }
 
     function selectedIds() {
-        return Array.from(elements.clips.querySelectorAll('input[type="checkbox"]:checked'))
+        return Array.from(elements.nodes.querySelectorAll('input[type="checkbox"]:checked'))
             .map(function (input) { return input.value; });
     }
 
     function updateActions() {
-        const hasSelection = selectedIds().length > 0;
-        elements.apply.disabled = busy || !hasSelection;
+        var hasSelection = selectedIds().length > 0;
+        var hasCamera = elements.camera.value !== '';
+        elements.apply.disabled = busy || !hasSelection || !hasCamera;
         elements.restore.disabled = busy || !hasSelection;
     }
 
     function readPositiveNumber(input, label) {
-        const value = Number(input.value);
+        var value = Number(input.value);
         if (!Number.isFinite(value) || value <= 0) {
             throw new Error(label + ' must be greater than zero.');
         }
         return value;
     }
 
-    function renderClips() {
-        elements.count.textContent = clips.length + (clips.length === 1 ? ' clip' : ' clips');
-        if (clips.length === 0) {
-            elements.clips.innerHTML = '<p class="empty">No video clips found on this timeline.</p>';
+    function renderNodes() {
+        elements.count.textContent = nodes.length + (nodes.length === 1 ? ' node' : ' nodes');
+        if (nodes.length === 0) {
+            elements.nodes.innerHTML = '<p class="empty">No Transform3D nodes selected.</p>';
             updateActions();
             return;
         }
 
-        elements.clips.replaceChildren();
-        clips.forEach(function (clip) {
-            const row = document.createElement('label');
-            row.className = 'clip';
+        elements.nodes.replaceChildren();
+        nodes.forEach(function (node) {
+            var row = document.createElement('label');
+            row.className = 'node';
 
-            const check = document.createElement('input');
+            var check = document.createElement('input');
             check.type = 'checkbox';
-            check.value = clip.id;
+            check.value = node.id;
             check.checked = true;
             check.addEventListener('change', updateActions);
 
-            const info = document.createElement('span');
-            const name = document.createElement('span');
-            name.className = 'clip-name';
-            name.textContent = clip.name;
-            const meta = document.createElement('span');
-            meta.className = 'clip-meta';
-            meta.textContent = 'Track ' + clip.track + ' · Zoom ' + clip.zoomX.toFixed(2) + ' × ' + clip.zoomY.toFixed(2);
-            info.append(name, document.createElement('br'), meta);
+            var info = document.createElement('span');
+            var nameEl = document.createElement('span');
+            nameEl.className = 'node-name';
+            nameEl.textContent = node.name;
+            var meta = document.createElement('span');
+            meta.className = 'node-meta';
+            meta.textContent = 'Scale ' + node.scaleX.toFixed(2) + ' \u00d7 ' +
+                node.scaleY.toFixed(2) + ' \u00d7 ' + node.scaleZ.toFixed(2);
+            info.append(nameEl, document.createElement('br'), meta);
 
-            const depthLabel = document.createElement('span');
-            depthLabel.className = 'clip-depth';
-            depthLabel.append(document.createTextNode('Depth'));
-            const depth = document.createElement('input');
-            depth.type = 'number';
-            depth.min = '0.01';
-            depth.step = 'any';
-            depth.value = elements.reference.value;
-            depth.setAttribute('aria-label', 'Depth for ' + clip.name);
-            depthLabel.append(depth);
-            row.append(check, info, depthLabel);
-            elements.clips.append(row);
+            row.append(check, info);
+            elements.nodes.append(row);
         });
+        updateActions();
+    }
+
+    function populateCameras(cameras) {
+        elements.camera.replaceChildren();
+        if (cameras.length === 0) {
+            var empty = document.createElement('option');
+            empty.value = '';
+            empty.textContent = '— No Camera3D found —';
+            empty.disabled = true;
+            elements.camera.append(empty);
+            updateActions();
+            return;
+        }
+        var defaultOpt = document.createElement('option');
+        defaultOpt.value = '';
+        defaultOpt.textContent = '— Select a Camera3D —';
+        elements.camera.append(defaultOpt);
+        cameras.forEach(function (camera) {
+            var opt = document.createElement('option');
+            opt.value = camera.id;
+            opt.textContent = camera.name;
+            elements.camera.append(opt);
+        });
+        if (cameras.length === 1) {
+            elements.camera.value = cameras[0].id;
+        }
+        elements.camera.addEventListener('change', updateActions);
         updateActions();
     }
 
     async function scan() {
         setBusy(true);
-        setStatus('Scanning the current timeline…');
+        setStatus('Scanning the active Fusion composition\u2026');
         try {
-            const result = await bridge.scan();
-            clips = result.clips;
-            renderClips();
-            setStatus(result.timelineName + ' · ' + clips.length + ' video clips');
+            var result = await bridge.scan();
+            nodes = result.nodes;
+            renderNodes();
+            populateCameras(result.cameras);
+            setStatus(result.compName + ' \u00b7 ' + nodes.length + ' node(s) selected');
         } catch (error) {
             setStatus(error.message);
         } finally {
             setBusy(false);
         }
-    }
-
-    function selectedDepths() {
-        const depths = [];
-        elements.clips.querySelectorAll('.clip').forEach(function (row) {
-            const check = row.querySelector('input[type="checkbox"]');
-            if (check.checked) {
-                depths.push({
-                    id: check.value,
-                    distance: readPositiveNumber(row.querySelector('.clip-depth input'), 'Depth')
-                });
-            }
-        });
-        if (depths.length === 0) {
-            throw new Error('Select at least one clip.');
-        }
-        return depths;
     }
 
     async function apply() {
         try {
-            const referenceDistance = readPositiveNumber(elements.reference, 'Reference distance');
-            const items = selectedDepths();
+            var referenceDistance = readPositiveNumber(elements.reference, 'Reference distance');
+            var cameraId = elements.camera.value;
+            if (!cameraId) throw new Error('Select a Camera3D node.');
+            var ids = selectedIds();
+            if (ids.length === 0) throw new Error('Select at least one node.');
             setBusy(true);
-            const result = await bridge.apply({ referenceDistance: referenceDistance, items: items });
-            setStatus('Applied correction to ' + result.applied + ' clip(s).');
-            await scan();
+            var result = await bridge.apply({
+                referenceDistance: referenceDistance,
+                cameraId: cameraId,
+                ids: ids
+            });
+            setStatus('Applied correction to ' + result.applied + ' node(s).');
         } catch (error) {
             setStatus(error.message);
         } finally {
@@ -134,14 +145,13 @@
         }
     }
 
-    async function restore() {
+    async function remove() {
         try {
-            const ids = selectedIds();
-            if (ids.length === 0) throw new Error('Select at least one clip.');
+            var ids = selectedIds();
+            if (ids.length === 0) throw new Error('Select at least one node.');
             setBusy(true);
-            const result = await bridge.restore({ ids: ids });
-            setStatus('Restored original zoom on ' + result.restored + ' clip(s).');
-            await scan();
+            var result = await bridge.remove({ ids: ids });
+            setStatus('Restored original scale on ' + result.removed + ' node(s).');
         } catch (error) {
             setStatus(error.message);
         } finally {
@@ -151,10 +161,10 @@
 
     elements.scan.addEventListener('click', scan);
     elements.apply.addEventListener('click', apply);
-    elements.restore.addEventListener('click', restore);
+    elements.restore.addEventListener('click', remove);
     bridge.onReady(function (result) {
         setStatus(result.ok ? 'Connected to DaVinci Resolve.' : result.error);
         elements.scan.disabled = !result.ok;
         if (result.ok) scan();
     });
-}());
+})();
