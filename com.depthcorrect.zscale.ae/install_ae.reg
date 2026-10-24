@@ -1,0 +1,23 @@
+Windows Registry Editor Version 5.00
+
+; DepthCorrect After Effects panel registration
+; Double-click this file to register the extension with Adobe After Effects.
+;
+; After Effects must be restarted for the registration to take effect.
+;
+; To uninstall, delete this registry key:
+;   HKCU\Software\Adobe\CEP\Extensions\com.depthcorrect.zscale.panel
+
+[HKEY_CURRENT_USER\Software\Adobe\CEP\Extensions\com.depthcorrect.zscale.panel]
+"ExtensionManifestPath"="C:\\Program Files\\Common Files\\Adobe\\CEP\\extensions\\com.depthcorrect.zscale.ae\\CSXS\\manifest.xml"
+"HostList"="AEFT"
+"HostVersionList"="[0.0,99.9]"
+"ExtensionBundleId"="com.depthcorrect.zscale"
+"ExtensionBundleVersion"="1.0.0"
+"ExtensionBundleName"="DepthCorrect"
+"ExtensionId"="com.depthcorrect.zscale.panel"
+"ExtensionVersion"="1.0.0"
+"ExtensionPath"="C:\\Program Files\\Common Files\\Adobe\\CEP\\extensions\\com.depthcorrect.zscale.ae"
+"Port"=dword:00000000
+"RequiredRuntimeList"="CSXS"
+"LocalIdentifier"="DepthCorrect"

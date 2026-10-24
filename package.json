@@ -16,9 +16,12 @@
     "url": "https://github.com/OseMine/DepthCorrect/issues"
   },
   "scripts": {
-    "test": "node --test com.depthcorrect.zscale.resolve/tests/*.test.js",
+    "test": "node scripts/run-tests.js",
     "check": "node scripts/check.js",
-    "package": "python scripts/package.py"
+    "package": "python scripts/package.py",
+    "build:native": "pwsh scripts/build_native.ps1",
+    "package:zxp": "python scripts/package_zxp.py",
+    "install:resolve": "com.depthcorrect.zscale.resolve/install_resolve.lua"
   },
   "engines": {
     "node": ">=20",

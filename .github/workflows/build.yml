@@ -35,6 +35,38 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install CMake
+        uses: jwlawson/actions-cmake@v2
+        with:
+          cmake-version: '3.28'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build native Resolve bridge
+        shell: bash
+        run: |
+          set -e
+          NATIVE_DIR="com.depthcorrect.zscale.resolve/native"
+          BUILD_DIR="$NATIVE_DIR/build-ci"
+          rm -rf "$BUILD_DIR"
+          mkdir -p "$BUILD_DIR"
+          cmake -S "$NATIVE_DIR" -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release
+          cmake --build "$BUILD_DIR" --config Release
+          # Copy the built .node file to the platform directory.
+          case "${{ matrix.os }}" in
+            ubuntu-latest|macos-*)
+              PLATFORM_DIR="$NATIVE_DIR/linux-x64"
+              [ "${{ matrix.os }}" = "macos-latest" ] && PLATFORM_DIR="$NATIVE_DIR/macos-universal"
+              ;;
+            windows-latest)
+              PLATFORM_DIR="$NATIVE_DIR/windows-x64"
+              ;;
+          esac
+          mkdir -p "$PLATFORM_DIR"
+          find "$BUILD_DIR" -name "*.node" -exec cp {} "$PLATFORM_DIR/" \;
+          echo "Built native bridge for ${{ matrix.os }}:"
+          ls -la "$PLATFORM_DIR"
+        continue-on-error: true
+
       - name: Validate JavaScript syntax and repository structure
         run: npm run check
 
