@@ -35,11 +35,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install CMake
-        uses: jwlawson/actions-cmake@v2
-        with:
-          cmake-version: '3.28'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check CMake
+        run: cmake --version
 
       - name: Build native Resolve bridge
         shell: bash
