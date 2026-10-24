@@ -4,7 +4,7 @@
   "private": true,
   "description": "Depth-based scale correction tools for After Effects and DaVinci Resolve.",
   "main": "com.depthcorrect.zscale.ae/index.html",
-  "keywords": ["after-effects", "davinci-resolve", "workflow-integration", "z-scale", "perspective", "depth-correct"],
+  "keywords": ["after-effects", "davinci-resolve", "fusion", "python", "z-scale", "perspective", "depth-correct"],
   "author": "OseMine",
   "license": "MIT",
   "repository": {
@@ -19,9 +19,8 @@
     "test": "node scripts/run-tests.js",
     "check": "node scripts/check.js",
     "package": "python scripts/package.py",
-    "build:native": "pwsh scripts/build_native.ps1",
-    "package:zxp": "python scripts/package_zxp.py",
-    "install:resolve": "com.depthcorrect.zscale.resolve/install_resolve.lua"
+    "check:python": "python -m py_compile DepthCorrect/DepthCorrect.py",
+    "install:vendor": "python scripts/install_vendor.py"
   },
   "engines": {
     "node": ">=20",

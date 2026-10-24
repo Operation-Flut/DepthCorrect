@@ -32,26 +32,24 @@ jobs:
           package-manager-cache: false
 
       - name: Setup Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
-      - name: Validate JavaScript syntax and repository structure
+      - name: Validate scripts and repository structure
         run: npm run check
 
       - name: Run tests
         run: npm test
 
-      - name: Build release archives (ZIP & ZXP)
+      - name: Build release archives
         run: npm run package
 
       - name: Upload plugin archives (${{ matrix.os }})
         uses: actions/upload-artifact@v7
         with:
           name: DepthCorrect-${{ matrix.os }}
-          path: |
-            dist/*.zip
-            dist/*.zxp
+          path: dist/*.zip
           if-no-files-found: error
           retention-days: 7
 
@@ -74,21 +72,24 @@ jobs:
           from pathlib import Path
           import sys
 
-          required_plugins = ['com.depthcorrect.zscale.ae', 'com.depthcorrect.zscale.resolve']
+          expected = {
+              'DepthCorrect-after-effects.zip': 'com.depthcorrect.zscale.ae/',
+              'DepthCorrect-resolve.zip': 'DepthCorrect/',
+          }
 
-          for zip_path in Path('artifacts').glob('*.zip'):
+          archives = list(Path('artifacts').glob('*.zip'))
+          if not archives:
+              print('ERROR: no archives found')
+              sys.exit(1)
+
+          for zip_path in archives:
               print(f'Checking {zip_path.name}...')
-              with ZipFile(zip_path) as z:
-                  names = z.namelist()
-                  matches = [plugin for plugin in required_plugins
-                             if any(name.startswith(plugin + '/') for name in names)]
-                  if len(matches) != 1:
-                      print(f'  ERROR: Expected exactly one plugin, found {matches}')
+              with ZipFile(zip_path) as archive:
+                  names = archive.namelist()
+                  prefix = expected.get(zip_path.name)
+                  if prefix is None or not any(name.startswith(prefix) for name in names):
+                      print(f'  ERROR: unexpected archive layout: {zip_path.name}')
                       sys.exit(1)
-                  sdk_files = [name for name in names if name.endswith('WorkflowIntegration.node')]
-                  if sdk_files:
-                      print(f'  ERROR: Contains SDK binary: {sdk_files}')
-                      sys.exit(1)
-                  print(f'  OK: {len(names)} files, contains {matches[0]}, no SDK binary')
+                  print(f'  OK: {len(names)} files')
           print('All archives verified successfully.')
           "

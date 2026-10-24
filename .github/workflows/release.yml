@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: 20
           package-manager-cache: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -40,7 +40,7 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Resolved release tag: $TAG"
 
-      - name: Build release archives (ZIP & ZXP)
+      - name: Validate, test, and package
         run: |
           npm run check
           npm test
@@ -53,6 +53,5 @@ jobs:
           name: DepthCorrect ${{ steps.resolve-tag.outputs.tag }}
           files: |
             dist/*.zip
-            dist/*.zxp
             scripts/installer.lua
           generate_release_notes: true

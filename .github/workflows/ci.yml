@@ -19,20 +19,18 @@ jobs:
         with:
           node-version: 20
           package-manager-cache: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: Check JavaScript syntax and repository structure
+      - name: Check scripts and repository structure
         run: npm run check
       - name: Run tests
         run: npm test
-      - name: Build release archives (ZIP & ZXP)
+      - name: Build release archives
         run: npm run package
       - name: Upload preview artifacts
         uses: actions/upload-artifact@v7
         with:
           name: DepthCorrect-preview
-          path: |
-            dist/*.zip
-            dist/*.zxp
+          path: dist/*.zip
           if-no-files-found: error

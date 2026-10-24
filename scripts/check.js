@@ -13,14 +13,7 @@ const requiredFiles = [
     'com.depthcorrect.zscale.ae/index.html',
     'com.depthcorrect.zscale.ae/js/main.js',
     'com.depthcorrect.zscale.ae/jsx/host.jsx',
-    'com.depthcorrect.zscale.resolve/README.md',
-    'com.depthcorrect.zscale.resolve/manifest.xml',
-    'com.depthcorrect.zscale.resolve/main.js',
-    'com.depthcorrect.zscale.resolve/preload.js',
-    'com.depthcorrect.zscale.resolve/index.html',
-    'com.depthcorrect.zscale.resolve/js/renderer.js',
-    'com.depthcorrect.zscale.resolve/js/fusion.js',
-    'com.depthcorrect.zscale.resolve/js/resolve-comp.js'
+    'DepthCorrect/DepthCorrect.py'
 ];
 
 for (const relativePath of requiredFiles) {
@@ -30,36 +23,37 @@ for (const relativePath of requiredFiles) {
 }
 
 const javascriptFiles = [
-    'com.depthcorrect.zscale.ae/js/main.js',
-    'com.depthcorrect.zscale.resolve/main.js',
-    'com.depthcorrect.zscale.resolve/preload.js',
-    'com.depthcorrect.zscale.resolve/js/renderer.js',
-    'com.depthcorrect.zscale.resolve/js/scale.js',
-    'com.depthcorrect.zscale.resolve/js/fusion.js',
-    'com.depthcorrect.zscale.resolve/js/resolve-comp.js',
-    'com.depthcorrect.zscale.resolve/js/resolve-tools.js'
+    'com.depthcorrect.zscale.ae/js/main.js'
 ];
 
 for (const relativePath of javascriptFiles) {
     execFileSync(process.execPath, ['--check', path.join(root, relativePath)], { stdio: 'inherit' });
 }
 
-const resolveManifest = fs.readFileSync(path.join(root, 'com.depthcorrect.zscale.resolve/manifest.xml'), 'utf8');
-if (!/<Id>com\.depthcorrect\.zscale\.resolve<\/Id>/.test(resolveManifest) ||
-    !/<FilePath>main\.js<\/FilePath>/.test(resolveManifest)) {
-    throw new Error('Resolve plugin manifest is missing its plugin ID or entry point.');
+const python = process.env.PYTHON || 'python';
+try {
+    execFileSync(python, ['-m', 'py_compile', path.join(root, 'DepthCorrect/DepthCorrect.py')], {
+        stdio: 'inherit',
+        cwd: root
+    });
+} catch (error) {
+    throw new Error('Python syntax check failed. Set PYTHON to a Python 3 executable if needed.', { cause: error });
 }
 
+const aeManifest = fs.readFileSync(
+    path.join(root, 'com.depthcorrect.zscale.ae/CSXS/manifest.xml'),
+    'utf8'
+);
 const rootPackage = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
-const resolvePackage = JSON.parse(fs.readFileSync(path.join(root, 'com.depthcorrect.zscale.resolve/package.json'), 'utf8'));
-const aeManifest = fs.readFileSync(path.join(root, 'com.depthcorrect.zscale.ae/CSXS/manifest.xml'), 'utf8');
-const aeBundleVersion = new RegExp('ExtensionBundleVersion="' + rootPackage.version.replace(/\./g, '\\.') + '"');
-const aeExtensionVersion = new RegExp('<Extension Id="com\\.depthcorrect\\.zscale\\.panel" Version="' +
-    rootPackage.version.replace(/\./g, '\\.') + '"');
-if (rootPackage.version !== resolvePackage.version ||
-    !aeBundleVersion.test(aeManifest) ||
-    !aeExtensionVersion.test(aeManifest)) {
-    throw new Error('The root, Resolve, and After Effects versions must match.');
+const aeBundleVersion = new RegExp(
+    'ExtensionBundleVersion="' + rootPackage.version.replace(/\./g, '\\.') + '"'
+);
+const aeExtensionVersion = new RegExp(
+    '<Extension Id="com\\.depthcorrect\\.zscale\\.panel" Version="' +
+    rootPackage.version.replace(/\./g, '\\.') + '"'
+);
+if (!aeBundleVersion.test(aeManifest) || !aeExtensionVersion.test(aeManifest)) {
+    throw new Error('The After Effects manifest version does not match package.json.');
 }
 
 const releaseTag = process.env.GITHUB_REF_NAME;
@@ -67,4 +61,4 @@ if (releaseTag && /^v\d/.test(releaseTag) && releaseTag !== 'v' + rootPackage.ve
     throw new Error('Release tag ' + releaseTag + ' does not match package version ' + rootPackage.version + '.');
 }
 
-console.log('Repository structure, plugin manifest, and JavaScript syntax are valid.');
+console.log('Repository structure, script syntax, and After Effects manifest are valid.');

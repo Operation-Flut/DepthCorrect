@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const testDir = path.join(root, 'com.depthcorrect.zscale.resolve', 'tests');
+const testDir = path.join(root, 'tests');
 
 const testFiles = fs
   .readdirSync(testDir)

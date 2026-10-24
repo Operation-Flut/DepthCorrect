@@ -7,10 +7,12 @@ Notable project changes are recorded here. Dates use ISO 8601.
 ### Added
 
 - After Effects CEP extension for dynamic 3D layer scaling.
-- DaVinci Resolve Workflow Integration plugin for live depth-based scale correction on Fusion `Transform3D` nodes, driven by `Camera3D` distance.
-- Plugin-specific setup guides, validation, packaging, and tag-based GitHub release automation.
+- Standalone Python/PySide panel for DaVinci Resolve and Fusion 3D compositions.
+- Separate After Effects and Resolve release archives.
+- Repository validation, tests, packaging, and tag-based GitHub release automation.
 
 ### Notes
 
-- The Resolve plugin operates in the Fusion page on 3D node graphs, not on timeline clips. It uses Fusion's native expression system to keep correction live as the camera or nodes move.
-- The platform-specific Resolve `WorkflowIntegration.node` bridge is not distributed with this project.
+- The Resolve tool runs as a normal Fusion Python script through `DaVinciResolveScript` or the `bmd` scripting API.
+- It does not use DaVinci Resolve Workflow Integration, Electron, or a native `.node` bridge.
+- Qt bindings are intentionally excluded from release archives; use the bundled Resolve Python environment or `scripts/install_vendor.py` for local setup.
