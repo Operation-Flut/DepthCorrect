@@ -35,32 +35,36 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Check CMake
-        run: cmake --version
-
       - name: Build native Resolve bridge
+        uses: threeal/cmake-action@v2.1.0
+        with:
+          source-dir: com.depthcorrect.zscale.resolve/native
+          build-dir: com.depthcorrect.zscale.resolve/native/build-ci
+          options: |
+            CMAKE_BUILD_TYPE=Release
+          build-args: --config Release
+        continue-on-error: true
+
+      - name: Stage native Resolve bridge
         shell: bash
         run: |
           set -e
           NATIVE_DIR="com.depthcorrect.zscale.resolve/native"
           BUILD_DIR="$NATIVE_DIR/build-ci"
-          rm -rf "$BUILD_DIR"
-          mkdir -p "$BUILD_DIR"
-          cmake -S "$NATIVE_DIR" -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release
-          cmake --build "$BUILD_DIR" --config Release
-          # Copy the built .node file to the platform directory.
           case "${{ matrix.os }}" in
-            ubuntu-latest|macos-*)
-              PLATFORM_DIR="$NATIVE_DIR/linux-x64"
-              [ "${{ matrix.os }}" = "macos-latest" ] && PLATFORM_DIR="$NATIVE_DIR/macos-universal"
+            macos-latest)
+              PLATFORM_DIR="$NATIVE_DIR/macos-universal"
               ;;
             windows-latest)
               PLATFORM_DIR="$NATIVE_DIR/windows-x64"
               ;;
+            *)
+              PLATFORM_DIR="$NATIVE_DIR/linux-x64"
+              ;;
           esac
           mkdir -p "$PLATFORM_DIR"
           find "$BUILD_DIR" -name "*.node" -exec cp {} "$PLATFORM_DIR/" \;
-          echo "Built native bridge for ${{ matrix.os }}:"
+          echo "Staged native bridge for ${{ matrix.os }}:"
           ls -la "$PLATFORM_DIR"
         continue-on-error: true
 
