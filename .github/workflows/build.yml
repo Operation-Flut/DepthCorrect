@@ -29,45 +29,15 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
+          package-manager-cache: false
 
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Build native Resolve bridge
-        uses: threeal/cmake-action@v2.1.0
-        with:
-          source-dir: com.depthcorrect.zscale.resolve/native
-          build-dir: com.depthcorrect.zscale.resolve/native/build-ci
-          options: |
-            CMAKE_BUILD_TYPE=Release
-          build-args: --config Release
-        continue-on-error: true
-
-      - name: Stage native Resolve bridge
-        shell: bash
-        run: |
-          set -e
-          NATIVE_DIR="com.depthcorrect.zscale.resolve/native"
-          BUILD_DIR="$NATIVE_DIR/build-ci"
-          case "${{ matrix.os }}" in
-            macos-latest)
-              PLATFORM_DIR="$NATIVE_DIR/macos-universal"
-              ;;
-            windows-latest)
-              PLATFORM_DIR="$NATIVE_DIR/windows-x64"
-              ;;
-            *)
-              PLATFORM_DIR="$NATIVE_DIR/linux-x64"
-              ;;
-          esac
-          mkdir -p "$PLATFORM_DIR"
-          find "$BUILD_DIR" -name "*.node" -exec cp {} "$PLATFORM_DIR/" \;
-          echo "Staged native bridge for ${{ matrix.os }}:"
-          ls -la "$PLATFORM_DIR"
-        continue-on-error: true
-
+      # WorkflowIntegration.node is proprietary and must be supplied by the
+      # local Resolve SDK. It is intentionally excluded from CI artifacts.
       - name: Validate JavaScript syntax and repository structure
         run: npm run check
 
@@ -103,25 +73,22 @@ jobs:
           from zipfile import ZipFile
           from pathlib import Path
           import sys
-          
+
           required_plugins = ['com.depthcorrect.zscale.ae', 'com.depthcorrect.zscale.resolve']
-          excluded = {'WorkflowIntegration.node', '.DS_Store', 'Thumbs.db'}
-          
+
           for zip_path in Path('artifacts').glob('*.zip'):
               print(f'Checking {zip_path.name}...')
               with ZipFile(zip_path) as z:
                   names = z.namelist()
-                  # Check both plugins present
-                  for plugin in required_plugins:
-                      plugin_files = [n for n in names if n.startswith(plugin + '/')]
-                      if not plugin_files:
-                          print(f'  ERROR: Missing {plugin} files')
-                          sys.exit(1)
-                  # Check no SDK binary
-                  sdk_files = [n for n in names if n.endswith('WorkflowIntegration.node')]
+                  matches = [plugin for plugin in required_plugins
+                             if any(name.startswith(plugin + '/') for name in names)]
+                  if len(matches) != 1:
+                      print(f'  ERROR: Expected exactly one plugin, found {matches}')
+                      sys.exit(1)
+                  sdk_files = [name for name in names if name.endswith('WorkflowIntegration.node')]
                   if sdk_files:
                       print(f'  ERROR: Contains SDK binary: {sdk_files}')
                       sys.exit(1)
-                  print(f'  OK: {len(names)} files, both plugins present, no SDK binary')
+                  print(f'  OK: {len(names)} files, contains {matches[0]}, no SDK binary')
           print('All archives verified successfully.')
           "

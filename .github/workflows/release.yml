@@ -21,6 +21,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 20
+          package-manager-cache: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -37,28 +38,8 @@ jobs:
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Resolved release tag: $TAG"
-      - name: Build native Resolve bridge
-        uses: threeal/cmake-action@v2.1.0
-        with:
-          source-dir: com.depthcorrect.zscale.resolve/native
-          build-dir: com.depthcorrect.zscale.resolve/native/build-ci
-          options: |
-            CMAKE_BUILD_TYPE=Release
-          build-args: --config Release
-        continue-on-error: true
-
-      - name: Stage native Resolve bridge
-        shell: bash
-        run: |
-          set -e
-          NATIVE_DIR="com.depthcorrect.zscale.resolve/native"
-          BUILD_DIR="$NATIVE_DIR/build-ci"
-          PLATFORM_DIR="$NATIVE_DIR/linux-x64"
-          mkdir -p "$PLATFORM_DIR"
-          find "$BUILD_DIR" -name "*.node" -exec cp {} "$PLATFORM_DIR/" \;
-          echo "Staged native bridge:"
-          ls -la "$PLATFORM_DIR"
-        continue-on-error: true
+      # WorkflowIntegration.node is proprietary and must be supplied by the
+      # local Resolve SDK. It is intentionally excluded from release archives.
 
       - name: Validate and test
         run: |
