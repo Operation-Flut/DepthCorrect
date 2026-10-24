@@ -13,7 +13,7 @@ DepthCorrect for Resolve is a Workflow Integration plugin that applies a **live*
 ## Requirements
 
 - DaVinci Resolve 18.5 or later with Workflow Integration Plugins enabled.
-- The Resolve Developer SamplePlugin, which contains the matching `WorkflowIntegration.node` bridge. The installer copies this local proprietary binary; this project does not redistribute it.
+- The Resolve Developer package installed under `C:\ProgramData\Blackmagic Design\DaVinci Resolve\Support\Developer` (Windows) or the corresponding Resolve `Developer` directory on macOS. It contains the matching `WorkflowIntegration.node` bridge and API documentation. The installer copies this local proprietary binary; this project does not redistribute it.
 
 ## Install
 
@@ -49,7 +49,7 @@ Fusion expression references require valid identifiers (letters, numbers, and un
 
 - **Plugin is not listed:** confirm the extracted folder is directly inside the Workflow Integration Plugins directory and restart Resolve.
 - **Cannot connect to Resolve / missing native bridge:** verify that the Resolve Developer SamplePlugin exists and contains `WorkflowIntegration.node`, then rerun `install_resolve.lua`. The expected source path is shown in the installation steps.
-- **Fusion is not active:** switch to the Fusion page and open a composition before scanning.
+- **Fusion is not active:** switch to the Fusion page and open a composition before scanning. On Resolve versions whose bridge does not expose `Fusion.GetCurrentComp()`, select the Fusion clip or Fusion composition's timeline item; DepthCorrect resolves its composition through `Project.GetCurrentTimeline()` and `Timeline.GetCurrentVideoItem()`.
 - **No Transform3D nodes appear:** select Transform3D nodes in the node graph before scanning.
 - **No Camera3D found:** add a Camera3D tool to the composition.
 - **Expression error on apply:** rename any nodes with spaces or special characters in their names.

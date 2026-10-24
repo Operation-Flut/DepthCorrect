@@ -26,7 +26,7 @@ npm run check
 npm run package
 ```
 
-The Resolve native bridge is supplied by DaVinci Resolve and is not included in source control or release archives. See the Resolve README for setup.
+The Resolve native bridge and developer documentation are supplied by the DaVinci Resolve Developer package and are not included in source control or release archives. See the Resolve README for setup.
 
 ## Support
 

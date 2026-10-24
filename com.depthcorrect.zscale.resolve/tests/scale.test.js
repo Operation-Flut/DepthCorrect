@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { correctedZoom } = require('../js/scale');
 const { expressionForScale, getVectorComponents, correctedScale } = require('../js/fusion');
+const { getCurrentFusionComp } = require('../js/resolve-comp');
 
 // ---- scale.js: correctedZoom (baked mode) ----
 
@@ -92,4 +93,54 @@ test('correctedScale matches correctedZoom', function () {
 test('correctedScale rejects invalid inputs', function () {
     assert.throws(function () { correctedScale(100, 0, 1000); }, RangeError);
     assert.throws(function () { correctedScale(100, 1000, -50); }, RangeError);
+});
+
+// ---- resolve-comp.js: active Fusion composition lookup ----
+
+test('uses Fusion current composition when the bridge exposes it', async function () {
+    const comp = { Name: 'ActiveComp' };
+    const resolve = {
+        Fusion: async function () {
+            return { GetCurrentComp: async function () { return comp; } };
+        }
+    };
+    assert.equal(await getCurrentFusionComp(resolve), comp);
+});
+
+test('falls back to the current timeline video item composition', async function () {
+    const comp = { Name: 'TimelineComp' };
+    const item = {
+        GetFusionCompCount: async function () { return 1; },
+        GetFusionCompByIndex: async function (index) {
+            assert.equal(index, 1);
+            return comp;
+        }
+    };
+    const resolve = {
+        Fusion: async function () { return {}; },
+        GetCurrentProject: async function () {
+            return {
+                GetCurrentTimeline: async function () {
+                    return {
+                        GetCurrentVideoItem: async function () { return item; }
+                    };
+                }
+            };
+        }
+    };
+    assert.equal(await getCurrentFusionComp(resolve), comp);
+});
+
+test('returns null when no active timeline item has a Fusion composition', async function () {
+    const resolve = {
+        Fusion: async function () { return {}; },
+        GetCurrentProject: async function () {
+            return {
+                GetCurrentTimeline: async function () {
+                    return { GetCurrentVideoItem: async function () { return null; } };
+                }
+            };
+        }
+    };
+    assert.equal(await getCurrentFusionComp(resolve), null);
 });

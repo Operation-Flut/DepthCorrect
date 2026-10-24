@@ -4,6 +4,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { expressionForScale, getVectorComponents } = require('./js/fusion');
+const { getCurrentFusionComp } = require('./js/resolve-comp');
 
 const PLUGIN_ID = 'com.depthcorrect.zscale.resolve';
 const ORIGINAL_SCALE_KEY = 'DepthCorrect.OriginalScale';
@@ -73,17 +74,11 @@ function getScaleInput(tool, axis) {
 
 async function scanFusion() {
     if (!ready) throw new Error('The Resolve Workflow Integration bridge is not ready.');
-    const fusion = await resolve.Fusion();
-    if (!fusion) {
-        selectedTools = new Map();
-        cameraTools = new Map();
-        throw new Error('Fusion is not active. Switch to the Fusion page, open a composition, select Transform3D nodes, and scan again.');
-    }
-    fusionComp = await fusion.GetCurrentComp();
+    fusionComp = await getCurrentFusionComp(resolve);
     if (!fusionComp) {
         selectedTools = new Map();
         cameraTools = new Map();
-        throw new Error('Open a Fusion composition, select one or more Transform3D nodes, and scan again.');
+        throw new Error('Open the Fusion page with a Fusion composition active, select one or more Transform3D nodes, and scan again.');
     }
 
     // Selected Transform3D tools.
