@@ -29,9 +29,9 @@ On Windows, unsigned development extensions may require the included `enable_Pla
    python scripts/install_vendor.py
    ```
 
-3. Run `DepthCorrect/DepthCorrect.py` from Resolve/Fusion's scripting environment.
+3. Run `DepthCorrect/DepthCorrect.py` from Resolve's **Fusion page** scripting menu.
 
-The script uses `DaVinciResolveScript` when available and falls back to Fusion's `bmd` scripting API. It does not require a Workflow Integration plugin or native bridge.
+The script checks Resolve's active page and refuses to open outside Fusion. It uses `DaVinciResolveScript` when available and does not require a Workflow Integration plugin or native bridge.
 
 ## Use
 

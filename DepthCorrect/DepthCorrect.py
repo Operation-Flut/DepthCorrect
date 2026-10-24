@@ -8,6 +8,9 @@ Dynamic Perspective & Z-Scale compensation for Fusion 3D Nodes.
 import sys
 import os
 
+
+print("Started DepthCorrect for Fusion 3D")
+
 # Fügt den lokalen 'vendor'-Ordner (relativ zum Skript) zum Suchpfad hinzu
 script_dir = os.path.dirname(os.path.abspath(__file__))
 vendor_dir = os.path.join(script_dir, "vendor")
@@ -30,18 +33,36 @@ except ImportError:
             sys.exit(1)
 
 # Check for Resolve/Fusion environment
+resolve = None
+fusion = None
 try:
     import DaVinciResolveScript as dvr
     resolve = dvr.scriptapp("Resolve")
     fusion = resolve.Fusion()
 except Exception:
     # Standalone Fusion or internal environment fallback
-    if 'fusion' not in globals():
-        try:
-            import bmd
-            fusion = bmd.scriptapp("Fusion")
-        except Exception:
-            fusion = None
+    try:
+        import bmd
+        fusion = bmd.scriptapp("Fusion")
+    except Exception:
+        fusion = None
+
+
+def current_resolve_page():
+    """Return Resolve's active page name, or None outside Resolve."""
+    if resolve is None:
+        return None
+    try:
+        return str(resolve.GetCurrentPage() or "").lower()
+    except Exception:
+        return None
+
+
+def fusion_page_available():
+    """Allow the tool to operate only while Resolve is on the Fusion page."""
+    if resolve is None:
+        return False
+    return current_resolve_page() == "fusion"
 
 # ==============================================================================
 # Material Design 3 Stylesheet
@@ -143,9 +164,12 @@ QSpinBox::focus, QDoubleSpinBox::focus {
 class DepthCorrectFusion:
     @staticmethod
     def get_comp():
-        if fusion:
+        if not fusion_page_available() or fusion is None:
+            return None
+        try:
             return fusion.CurrentComp
-        return None
+        except Exception:
+            return None
 
     @staticmethod
     def find_camera(comp):
@@ -304,6 +328,8 @@ end)()"""
 class DepthCorrectUI(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(DepthCorrectUI, self).__init__(parent)
+        if not fusion_page_available():
+            raise RuntimeError("DepthCorrect is available only on the Fusion page.")
         self.setWindowTitle("DepthCorrect 3D")
         self.resize(340, 500)
         self.setStyleSheet(DARK_STYLE)
@@ -443,6 +469,10 @@ class DepthCorrectUI(QtWidgets.QDialog):
 
 # Run Application
 def run():
+    if not fusion_page_available():
+        print("DepthCorrect is available only on the Fusion page.")
+        return None
+
     app = QtWidgets.QApplication.instance()
     if not app:
         app = QtWidgets.QApplication(sys.argv)
