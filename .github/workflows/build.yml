@@ -50,7 +50,7 @@ jobs:
         run: npm run package
 
       - name: Upload plugin archives (${{ matrix.os }})
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: DepthCorrect-${{ matrix.os }}
           path: dist/*.zip
