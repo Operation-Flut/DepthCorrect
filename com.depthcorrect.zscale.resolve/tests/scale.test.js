@@ -117,6 +117,15 @@ test('reads tool properties from promise bridge tool objects', async function ()
     assert.equal(await getToolName(tool), 'Camera3D1');
 });
 
+test('uses the tool-list key when the bridge omits the name property', async function () {
+    const info = await getToolInfo({ ID: 'Transform3DOp' }, 'Transform3D1');
+    assert.deepEqual(info, { name: 'Transform3D1', regId: 'Transform3DOp' });
+});
+
+test('ignores collection entries that are not Fusion tools', async function () {
+    assert.equal(await getToolInfo({ 0: 'not-a-tool' }, '0'), null);
+});
+
 // ---- resolve-comp.js: active Fusion composition lookup ----
 
 test('uses Fusion current composition when the bridge exposes it', async function () {

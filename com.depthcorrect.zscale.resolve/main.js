@@ -81,10 +81,11 @@ async function scanFusion() {
     if (rawSelected) {
         const keys = Object.keys(rawSelected);
         for (let i = 0; i < keys.length; i += 1) {
-            const tool = rawSelected[keys[i]];
+            const tool = await rawSelected[keys[i]];
             if (!tool || typeof tool !== 'object') continue;
-            const info = await getToolInfo(tool);
-            const regId = info.regId;
+            const info = await getToolInfo(tool, keys[i]);
+            if (!info) continue;
+            const regId = info.regId
             if (regId.indexOf('Transform3D') !== 0 && regId !== 'Transform3DOp') continue;
             const name = info.name;
             selectedTools.set(name, { name: name, regId: regId, tool: tool });
@@ -97,10 +98,11 @@ async function scanFusion() {
     if (rawAll) {
         const keys = Object.keys(rawAll);
         for (let i = 0; i < keys.length; i += 1) {
-            const tool = rawAll[keys[i]];
+            const tool = await rawAll[keys[i]];
             if (!tool || typeof tool !== 'object') continue;
-            const info = await getToolInfo(tool);
-            const regId = info.regId;
+            const info = await getToolInfo(tool, keys[i]);
+            if (!info) continue;
+            const regId = info.regId
             if (regId.indexOf('Camera3D') !== 0) continue;
             const name = info.name;
             cameraTools.set(name, { name: name, regId: regId, tool: tool });

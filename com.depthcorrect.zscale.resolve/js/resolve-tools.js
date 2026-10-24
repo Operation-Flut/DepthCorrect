@@ -3,37 +3,53 @@
 async function firstValue(source, keys) {
     if (!source) return undefined;
     for (const key of keys) {
-        const value = await source[key];
-        if (value !== undefined && value !== null) return value;
+        let value = source[key];
+        if (typeof value === 'function') value = value.call(source);
+        value = await value;
+        if (value !== undefined && value !== null && value !== '') return value;
     }
     return undefined;
 }
 
-async function getToolInfo(tool) {
-    const source = tool && typeof tool.GetAttrs === 'function'
-        ? await tool.GetAttrs()
-        : tool;
+async function getToolAttrs(tool) {
+    if (!tool) return tool;
+    let attrs = tool.GetAttrs;
+    if (typeof attrs === 'function') attrs = attrs.call(tool);
+    attrs = await attrs;
+    return attrs && typeof attrs === 'object' ? attrs : tool;
+}
+
+async function getToolInfo(tool, fallbackName) {
+    const resolvedTool = await tool;
+    const source = await getToolAttrs(resolvedTool);
     const name = await firstValue(source, [
         'TOOLS_Name',
         'TOOLST_Name',
         'Name',
-        'name'
+        'name',
+        'GetName'
     ]);
-    if (!name) throw new Error('Fusion returned a node without a name.');
+    const resolvedName = name || fallbackName;
+    const regId = String(await firstValue(source, [
+        'TOOLS_RegID',
+        'TOOLS_RegId',
+        'TOOLST_RegID',
+        'ID',
+        'id',
+        'GetID'
+    ]) || '');
+    if (!resolvedName || /^\d+$/.test(String(resolvedName))) {
+        return null;
+    }
     return {
-        name: String(name),
-        regId: String(await firstValue(source, [
-            'TOOLS_RegID',
-            'TOOLS_RegId',
-            'TOOLST_RegID',
-            'ID',
-            'id'
-        ]) || '')
+        name: String(resolvedName),
+        regId: regId
     };
 }
 
 async function getToolName(tool) {
-    return (await getToolInfo(tool)).name;
+    const info = await getToolInfo(tool);
+    return info ? info.name : 'unknown tool';
 }
 
 module.exports = { getToolInfo, getToolName };
