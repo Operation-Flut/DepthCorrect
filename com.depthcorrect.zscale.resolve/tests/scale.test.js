@@ -107,6 +107,28 @@ test('uses Fusion current composition when the bridge exposes it', async functio
     assert.equal(await getCurrentFusionComp(resolve), comp);
 });
 
+test('falls back when Fusion current composition is empty', async function () {
+    const comp = { Name: 'TimelineComp' };
+    const resolve = {
+        Fusion: async function () { return { GetCurrentComp: async function () { return null; } }; },
+        GetCurrentProject: async function () {
+            return {
+                GetCurrentTimeline: async function () {
+                    return {
+                        GetCurrentVideoItem: async function () {
+                            return {
+                                GetFusionCompCount: async function () { return 1; },
+                                GetFusionCompByIndex: async function () { return comp; }
+                            };
+                        }
+                    };
+                }
+            };
+        }
+    };
+    assert.equal(await getCurrentFusionComp(resolve), comp);
+});
+
 test('falls back to the current timeline video item composition', async function () {
     const comp = { Name: 'TimelineComp' };
     const item = {

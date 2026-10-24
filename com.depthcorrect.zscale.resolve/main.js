@@ -13,12 +13,14 @@ const nativePaths = {
     darwin: path.join(__dirname, 'native', 'macos-universal', 'WorkflowIntegration.node')
 };
 const nativePath = nativePaths[process.platform];
+let WorkflowIntegration;
 let resolve;
 let ready = false;
 let window;
 let fusionComp;
 let selectedTools = new Map();
 let cameraTools = new Map();
+let cleanupStarted = false;
 
 // ---------------------------------------------------------------------------
 // Tool helpers
@@ -289,10 +291,15 @@ app.whenReady().then(async function () {
         return;
     }
     try {
-        const WorkflowIntegration = require(nativePath);
-        const initialized = await WorkflowIntegration.Initialize(PLUGIN_ID);
+        WorkflowIntegration = require(nativePath);
+        const initialize = typeof WorkflowIntegration.InitializePromise === 'function'
+            ? WorkflowIntegration.InitializePromise(PLUGIN_ID)
+            : WorkflowIntegration.Initialize(PLUGIN_ID);
+        const initialized = await initialize;
         if (!initialized) throw new Error('The Resolve bridge rejected initialization.');
-        resolve = await WorkflowIntegration.GetResolve();
+        resolve = typeof WorkflowIntegration.GetResolvePromise === 'function'
+            ? await WorkflowIntegration.GetResolvePromise()
+            : await WorkflowIntegration.GetResolve();
         if (!resolve) throw new Error('Could not connect to DaVinci Resolve.');
         ready = true;
         if (window && !window.isDestroyed()) {
@@ -309,6 +316,22 @@ app.whenReady().then(async function () {
     }
 });
 
+async function cleanupBridge() {
+    if (cleanupStarted || !WorkflowIntegration || typeof WorkflowIntegration.CleanUp !== 'function') return;
+    cleanupStarted = true;
+    try {
+        await WorkflowIntegration.CleanUp();
+    } catch (error) {
+        console.error('DepthCorrect Resolve cleanup failed:', error);
+    }
+}
+
+app.on('before-quit', function (event) {
+    if (cleanupStarted) return;
+    event.preventDefault();
+    cleanupBridge().finally(function () { app.exit(0); });
+});
+
 app.on('window-all-closed', function () {
-    app.quit();
+    if (process.platform !== 'darwin') app.quit();
 });

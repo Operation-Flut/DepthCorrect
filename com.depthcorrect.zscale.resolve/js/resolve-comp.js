@@ -17,7 +17,8 @@ async function getCurrentFusionComp(resolve) {
         : null;
     if (fusion) {
         if (typeof fusion.GetCurrentComp === 'function') {
-            return await fusion.GetCurrentComp();
+            const currentComp = await fusion.GetCurrentComp();
+            if (currentComp) return currentComp;
         }
         if (fusion.CurrentComp) {
             return await fusion.CurrentComp;
