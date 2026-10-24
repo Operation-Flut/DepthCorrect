@@ -240,7 +240,11 @@ class DepthCorrectFusion:
         "Transform3DOp.Translate.Y",
         "Transform3DOp.Translate.Z",
     )
-    SCALE_INPUTS = (
+    # Use X as the uniform scale control. Fusion's Scale Lock propagates it
+    # to Y/Z; clearing all three axes first also removes stale expressions from
+    # older versions of this script that wrote invalid Y/Z parameters.
+    SCALE_INPUTS = ("Transform3DOp.Scale.X",)
+    ALL_SCALE_INPUTS = (
         "Transform3DOp.Scale.X",
         "Transform3DOp.Scale.Y",
         "Transform3DOp.Scale.Z",
@@ -315,19 +319,11 @@ class DepthCorrectFusion:
 
     @classmethod
     def set_input_expression(cls, tool, input_id, expression):
-        """Set an expression using an input handle or the operator fallback."""
+        """Set an expression using the Fusion input handle."""
         input_handle = cls.get_input_handle(tool, input_id)
-        if input_handle is not None:
-            input_handle.SetExpression(expression)
-            return
-
-        # Some Fusion Python builds expose Operator.SetExpression(id, expr)
-        # while returning no usable handle for hidden Transform3DOp controls.
-        setter = getattr(tool, "SetExpression", None)
-        if setter is not None:
-            setter(input_id, expression)
-            return
-        raise AttributeError(f"Fusion input not found: {input_id}")
+        if input_handle is None:
+            raise AttributeError(f"Fusion input not found: {input_id}")
+        input_handle.SetExpression(expression)
 
     @classmethod
     def get_input_expression(cls, tool, input_id):
@@ -467,29 +463,47 @@ class DepthCorrectFusion:
             # not through a Transform3D object. Use GetValue so this works for
             # ImagePlane3D, Transform3D, Shape3D, and Text3D alike.
             camera_name = str(cam.Name)
-            if not camera_name.isidentifier():
+            node_name = str(tool.Name)
+            if not camera_name.isidentifier() or not node_name.isidentifier():
                 raise ValueError(
-                    f"Camera name '{camera_name}' is not a valid Fusion expression identifier"
+                    "Fusion node names must contain only letters, numbers, and "
+                    f"underscores for expressions: '{camera_name}', '{node_name}'"
                 )
-            camera_ref = camera_name
-            # ``self`` is the tool whose Scale input owns this expression. It
-            # avoids a second tool-name lookup and works even when a node name
-            # collides with a built-in input name.
+
+            # Keep this as a Fusion *simple expression*. The previous version
+            # used self:GetValue() and tool handles inside the expression. That
+            # can be accepted by SetExpression() but fails during evaluation in
+            # Resolve 21.x, producing "cannot get Parameter for X Scale".
+            #
+            # Fully qualify both tools. This is the exact form Fusion writes
+            # in the Inspector and in saved .comp files. The target must not be
+            # left as an unqualified Transform3DOp reference: on Resolve 21.x
+            # that can leave the X Scale Parameter invalid at render time.
+            #
+            # Important: simple expressions use Fusion's global ``sqrt``
+            # function. ``math.sqrt`` belongs to the Python/Lua scripting
+            # context and leaves the Scale parameter invalid at render time.
             lua_expr = (
-                f'(math.sqrt('
-                f'({camera_ref}:GetValue("{cls.TRANSLATE_INPUTS[0]}", time) - '
-                f'self:GetValue("{cls.TRANSLATE_INPUTS[0]}", time))^2 + '
-                f'({camera_ref}:GetValue("{cls.TRANSLATE_INPUTS[1]}", time) - '
-                f'self:GetValue("{cls.TRANSLATE_INPUTS[1]}", time))^2 + '
-                f'({camera_ref}:GetValue("{cls.TRANSLATE_INPUTS[2]}", time) - '
-                f'self:GetValue("{cls.TRANSLATE_INPUTS[2]}", time))^2)'
-                f' / math.max(0.001, {max(0.001, float(ref_dist))})'
-                f') + 0 * string.len("DepthCorrect"))'
+                f'sqrt('
+                f'({camera_name}.{cls.TRANSLATE_INPUTS[0]} - '
+                f'{node_name}.{cls.TRANSLATE_INPUTS[0]})^2 + '
+                f'({camera_name}.{cls.TRANSLATE_INPUTS[1]} - '
+                f'{node_name}.{cls.TRANSLATE_INPUTS[1]})^2 + '
+                f'({camera_name}.{cls.TRANSLATE_INPUTS[2]} - '
+                f'{node_name}.{cls.TRANSLATE_INPUTS[2]})^2)'
+                f' / {max(0.001, float(ref_dist))}'
             )
 
             try:
-                for scale_input_id in cls.SCALE_INPUTS:
-                    cls.set_input_expression(tool, scale_input_id, lua_expr)
+                # Clear any stale expression on the hidden Y/Z inputs first,
+                # then drive only the valid X Scale input. With Scale Lock
+                # enabled Fusion propagates X to the other axes.
+                for scale_input_id in cls.ALL_SCALE_INPUTS[1:]:
+                    try:
+                        cls.set_input_expression(tool, scale_input_id, None)
+                    except Exception:
+                        pass
+                cls.set_input_expression(tool, cls.SCALE_INPUTS[0], lua_expr)
                 applied += 1
             except Exception as e:
                 print(f"Error applying to {tool.Name}: {e}")
@@ -513,9 +527,12 @@ class DepthCorrectFusion:
             tool = n["tool"]
             try:
                 removed_this = False
-                for scale_input_id in cls.SCALE_INPUTS:
-                    cls.set_input_expression(tool, scale_input_id, None)
-                    removed_this = True
+                for scale_input_id in cls.ALL_SCALE_INPUTS:
+                    try:
+                        cls.set_input_expression(tool, scale_input_id, None)
+                        removed_this = True
+                    except Exception:
+                        pass
                 if removed_this:
                     removed += 1
             except Exception as error:
