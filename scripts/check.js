@@ -36,7 +36,8 @@ const javascriptFiles = [
     'com.depthcorrect.zscale.resolve/js/renderer.js',
     'com.depthcorrect.zscale.resolve/js/scale.js',
     'com.depthcorrect.zscale.resolve/js/fusion.js',
-    'com.depthcorrect.zscale.resolve/js/resolve-comp.js'
+    'com.depthcorrect.zscale.resolve/js/resolve-comp.js',
+    'com.depthcorrect.zscale.resolve/js/resolve-tools.js'
 ];
 
 for (const relativePath of javascriptFiles) {

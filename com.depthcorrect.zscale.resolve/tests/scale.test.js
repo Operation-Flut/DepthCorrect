@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const { correctedZoom } = require('../js/scale');
 const { expressionForScale, getVectorComponents, correctedScale } = require('../js/fusion');
 const { getCurrentFusionComp } = require('../js/resolve-comp');
+const { getToolInfo, getToolName } = require('../js/resolve-tools');
 
 // ---- scale.js: correctedZoom (baked mode) ----
 
@@ -93,6 +94,27 @@ test('correctedScale matches correctedZoom', function () {
 test('correctedScale rejects invalid inputs', function () {
     assert.throws(function () { correctedScale(100, 0, 1000); }, RangeError);
     assert.throws(function () { correctedScale(100, 1000, -50); }, RangeError);
+});
+
+// ---- resolve-tools.js: bridge tool shape compatibility ----
+
+test('reads tool attributes from native tool objects', async function () {
+    const info = await getToolInfo({
+        GetAttrs: async function () {
+            return { TOOLS_Name: 'Transform3D1', TOOLS_RegID: 'Transform3DOp' };
+        }
+    });
+    assert.deepEqual(info, { name: 'Transform3D1', regId: 'Transform3DOp' });
+});
+
+test('reads tool properties from promise bridge tool objects', async function () {
+    const tool = {
+        Name: Promise.resolve('Camera3D1'),
+        ID: Promise.resolve('Camera3D')
+    };
+    const info = await getToolInfo(tool);
+    assert.deepEqual(info, { name: 'Camera3D1', regId: 'Camera3D' });
+    assert.equal(await getToolName(tool), 'Camera3D1');
 });
 
 // ---- resolve-comp.js: active Fusion composition lookup ----

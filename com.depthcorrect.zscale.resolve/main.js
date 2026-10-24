@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { expressionForScale, getVectorComponents } = require('./js/fusion');
 const { getCurrentFusionComp } = require('./js/resolve-comp');
+const { getToolInfo } = require('./js/resolve-tools');
 
 const PLUGIN_ID = 'com.depthcorrect.zscale.resolve';
 const ORIGINAL_SCALE_KEY = 'DepthCorrect.OriginalScale';
@@ -33,45 +34,36 @@ function assertIdentifier(name, label) {
     }
 }
 
-function getToolName(attrs) {
-    const name = attrs && (attrs.TOOLS_Name || attrs.TOOLST_Name);
-    if (!name) throw new Error('Fusion returned a node without a name.');
-    return String(name);
-}
+async function getVector(tool, inputId) {
+    const currentTime = await fusionComp.CurrentTime;
+    const value = await tool.GetInput(inputId, currentTime);
+    const vector = getVectorComponents(value);
+    if (vector && vector.every(Number.isFinite)) return vector;
 
-function getToolId(attrs) {
-    return String(attrs && (attrs.TOOLS_RegID || attrs.TOOLS_RegId || attrs.TOOLST_RegID) || '');
-}
-
-function getVector(tool, inputId) {
-    return tool.GetInput(inputId, fusionComp.CurrentTime).then(function (value) {
-        const vector = getVectorComponents(value);
-        if (vector && vector.every(Number.isFinite)) return vector;
-
-        // Fall back to reading sub-inputs individually.
-        return Promise.all([
-            tool.GetInput(inputId + '.X', fusionComp.CurrentTime),
-            tool.GetInput(inputId + '.Y', fusionComp.CurrentTime),
-            tool.GetInput(inputId + '.Z', fusionComp.CurrentTime)
-        ]).then(function (components) {
-            if (components.every(Number.isFinite)) return components;
-            throw new Error('Could not read ' + inputId + ' from node "' +
-                getToolName(tool.GetAttrs()) + '".');
-        });
-    });
+    // Fall back to reading sub-inputs individually.
+    const components = await Promise.all([
+        tool.GetInput(inputId + '.X', currentTime),
+        tool.GetInput(inputId + '.Y', currentTime),
+        tool.GetInput(inputId + '.Z', currentTime)
+    ]);
+    if (components.every(Number.isFinite)) return components;
+    const info = await getToolInfo(tool);
+    throw new Error('Could not read ' + inputId + ' from node "' +
+        info.name + '".');
 }
 
 // ---------------------------------------------------------------------------
 // Scan
 // ---------------------------------------------------------------------------
 
-function getScaleInput(tool, axis) {
+async function getScaleInput(tool, axis) {
     if (typeof tool.FindInput === 'function') {
-        const input = tool.FindInput('Scale.' + axis);
+        const input = await tool.FindInput('Scale.' + axis);
         if (input && typeof input.SetExpression === 'function') return input;
     }
+    const info = await getToolInfo(tool);
     throw new Error('Fusion did not expose the Scale.' + axis +
-        ' expression input on "' + getToolName(tool.GetAttrs()) + '".');
+        ' expression input on "' + info.name + '".');
 }
 
 async function scanFusion() {
@@ -91,10 +83,10 @@ async function scanFusion() {
         for (let i = 0; i < keys.length; i += 1) {
             const tool = rawSelected[keys[i]];
             if (!tool || typeof tool !== 'object') continue;
-            const attrs = tool.GetAttrs();
-            const regId = getToolId(attrs);
+            const info = await getToolInfo(tool);
+            const regId = info.regId;
             if (regId.indexOf('Transform3D') !== 0 && regId !== 'Transform3DOp') continue;
-            const name = getToolName(attrs);
+            const name = info.name;
             selectedTools.set(name, { name: name, regId: regId, tool: tool });
         }
     }
@@ -107,10 +99,10 @@ async function scanFusion() {
         for (let i = 0; i < keys.length; i += 1) {
             const tool = rawAll[keys[i]];
             if (!tool || typeof tool !== 'object') continue;
-            const attrs = tool.GetAttrs();
-            const regId = getToolId(attrs);
+            const info = await getToolInfo(tool);
+            const regId = info.regId;
             if (regId.indexOf('Camera3D') !== 0) continue;
-            const name = getToolName(attrs);
+            const name = info.name;
             cameraTools.set(name, { name: name, regId: regId, tool: tool });
         }
     }
@@ -128,8 +120,9 @@ async function scanFusion() {
         });
     }
 
+    const compName = await fusionComp.Name;
     return {
-        compName: String(fusionComp.Name || 'Fusion composition'),
+        compName: String(compName || 'Fusion composition'),
         nodes: nodes,
         cameras: Array.from(cameraTools.values()).map(function (camera) {
             return { id: camera.name, name: camera.name };
@@ -167,37 +160,37 @@ async function applyCorrection(options) {
     const nodes = requireSelectedNodes(options && options.ids);
     const changes = [];
 
-    fusionComp.StartUndo('Apply DepthCorrect live scale');
+    await fusionComp.StartUndo('Apply DepthCorrect live scale');
     try {
         const axes = ['X', 'Y', 'Z'];
         for (let n = 0; n < nodes.length; n += 1) {
             const entry = nodes[n];
             const tool = entry.tool;
             const scale = await getVector(tool, 'Scale');
-            const stored = tool.GetData(ORIGINAL_SCALE_KEY);
+            const stored = await tool.GetData(ORIGINAL_SCALE_KEY);
             const original = stored ? JSON.parse(stored) : scale;
-            const inputs = axes.map(function (axis) { return getScaleInput(tool, axis); });
+            const inputs = await Promise.all(axes.map(function (axis) { return getScaleInput(tool, axis); }));
             changes.push({ tool: tool, inputs: inputs, scale: scale, stored: stored });
-            tool.SetData(ORIGINAL_SCALE_KEY, JSON.stringify(original));
+            await tool.SetData(ORIGINAL_SCALE_KEY, JSON.stringify(original));
 
             for (let axis = 0; axis < 3; axis += 1) {
                 const expression = expressionForScale(
                     entry.name, camera.name, original[axis], referenceDistance
                 );
-                const result = inputs[axis].SetExpression(expression);
+                const result = await inputs[axis].SetExpression(expression);
                 if (result === false) {
                     throw new Error('Could not set Scale.' + axes[axis] + ' expression on "' + entry.name + '".');
                 }
             }
         }
-        fusionComp.EndUndo(true);
+        await fusionComp.EndUndo(true);
     } catch (error) {
         const axes = ['X', 'Y', 'Z'];
         for (let i = changes.length - 1; i >= 0; i -= 1) {
             const change = changes[i];
             for (let axis = 0; axis < 3; axis += 1) {
-                change.inputs[axis].SetExpression('');
-                change.tool.SetInput('Scale.' + axes[axis], change.scale[axis], fusionComp.CurrentTime);
+                await change.inputs[axis].SetExpression('');
+                await change.tool.SetInput('Scale.' + axes[axis], change.scale[axis], await fusionComp.CurrentTime);
             }
             if (change.stored) {
                 change.tool.SetData(ORIGINAL_SCALE_KEY, change.stored);
@@ -205,7 +198,7 @@ async function applyCorrection(options) {
                 change.tool.SetData(ORIGINAL_SCALE_KEY, '');
             }
         }
-        fusionComp.EndUndo(false);
+        await fusionComp.EndUndo(false);
         throw error;
     }
     return { applied: nodes.length };
@@ -214,27 +207,27 @@ async function applyCorrection(options) {
 async function removeCorrection(ids) {
     const nodes = requireSelectedNodes(ids);
     const changes = [];
-    fusionComp.StartUndo('Remove DepthCorrect live scale');
+    await fusionComp.StartUndo('Remove DepthCorrect live scale');
     try {
         const axes = ['X', 'Y', 'Z'];
         for (let n = 0; n < nodes.length; n += 1) {
             const entry = nodes[n];
             const tool = entry.tool;
-            const stored = tool.GetData(ORIGINAL_SCALE_KEY);
+            const stored = await tool.GetData(ORIGINAL_SCALE_KEY);
             if (!stored) continue;
             const original = JSON.parse(stored);
-            const inputs = axes.map(function (axis) { return getScaleInput(tool, axis); });
+            const inputs = await Promise.all(axes.map(function (axis) { return getScaleInput(tool, axis); }));
             changes.push({ tool: tool, inputs: inputs, original: original });
 
             for (let axis = 0; axis < 3; axis += 1) {
-                inputs[axis].SetExpression('');
-                tool.SetInput('Scale.' + axes[axis], original[axis], fusionComp.CurrentTime);
+                await inputs[axis].SetExpression('');
+                await tool.SetInput('Scale.' + axes[axis], original[axis], await fusionComp.CurrentTime);
             }
-            tool.SetData(ORIGINAL_SCALE_KEY, '');
+            await tool.SetData(ORIGINAL_SCALE_KEY, '');
         }
-        fusionComp.EndUndo(true);
+        await fusionComp.EndUndo(true);
     } catch (error) {
-        fusionComp.EndUndo(false);
+        await fusionComp.EndUndo(false);
         throw error;
     }
     return { removed: changes.length };
