@@ -7,10 +7,10 @@ Notable project changes are recorded here. Dates use ISO 8601.
 ### Added
 
 - After Effects CEP extension for dynamic 3D layer scaling.
-- DaVinci Resolve Workflow Integration plugin for manually driven, static clip zoom correction.
+- DaVinci Resolve Workflow Integration plugin for live depth-based scale correction on Fusion `Transform3D` nodes, driven by `Camera3D` distance.
 - Plugin-specific setup guides, validation, packaging, and tag-based GitHub release automation.
 
 ### Notes
 
-- Resolve's timeline scripting API does not expose AE-style dynamic expressions. Resolve correction requires a manually supplied depth per clip and is not animated.
+- The Resolve plugin operates in the Fusion page on 3D node graphs, not on timeline clips. It uses Fusion's native expression system to keep correction live as the camera or nodes move.
 - The platform-specific Resolve `WorkflowIntegration.node` bridge is not distributed with this project.
